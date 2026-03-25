@@ -1,7 +1,7 @@
 {% extends 'core/base.html' %}
-
+{% load static %}
 {% block content %}
 <h2>Reunião agendada com sucesso!</h2>
 
-<a href="/eventos/">Voltar aos eventos</a>
+<a href="{% url 'core:evento_list' %}">Voltar aos eventos</a>
 {% endblock %}
