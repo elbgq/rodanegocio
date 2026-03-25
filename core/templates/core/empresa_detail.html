@@ -1,0 +1,11 @@
+{% extends 'core/base.html' %}
+
+{% block content %}
+<h2>{{ empresa.nome }}</h2>
+
+<p><strong>Segmento:</strong> {{ empresa.segmento }}</p>
+<p><strong>Descrição:</strong> {{ empresa.descricao }}</p>
+<p><strong>Site:</strong> <a href="{{ empresa.site }}">{{ empresa.site }}</a></p>
+
+<a href="{% url 'empresa_update' empresa.id %}">Editar empresa</a>
+{% endblock %}

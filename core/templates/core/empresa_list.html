@@ -1,0 +1,17 @@
+{% extends 'core/base.html' %}
+
+{% block content %}
+<h2>Empresas</h2>
+
+<a href="{% url 'core:empresa_create' %}">Cadastrar nova empresa</a>
+
+<ul>
+    {% for empresa in empresas %}
+        <li>
+            <a href="{% url 'core:empresa_detail' empresa.id %}">
+                {{ empresa.nome }}
+            </a>
+        </li>
+    {% endfor %}
+</ul>
+{% endblock %}

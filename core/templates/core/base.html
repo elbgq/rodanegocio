@@ -1,0 +1,38 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Rodada de Negócios</title>
+
+    <!-- Bootstrap -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- CSS customizado -->
+    <link rel="stylesheet" href="{% static 'core/css/style.css' %}">
+</head>
+<body>
+
+    <nav class="navbar navbar-expand-lg navbar-dark" style="background-color: #2E8B57;">
+        <div class="container">
+            <a class="navbar-brand text-dark fw-bold" href="{% url 'home' %}">
+                Rodada de Negócios
+            </a>
+
+            <div>
+                <a class="nav-link d-inline text-dark" href="{% url 'core:empresa_list' %}">Empresas</a>
+                <a class="nav-link d-inline text-dark" href="{% url 'core:evento_list' %}">Eventos</a>
+            </div>
+        </div>
+    </nav>
+
+<div class="container">
+    {% block content %}
+    {% endblock %}
+</div>
+
+<!-- Bootstrap JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+</body>
+</html>

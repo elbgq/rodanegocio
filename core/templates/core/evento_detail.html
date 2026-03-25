@@ -1,0 +1,23 @@
+{% extends 'core/base.html' %}
+
+{% block content %}
+<h2>{{ evento.nome }}</h2>
+<p>{{ evento.data }} - {{ evento.local }}</p>
+
+<h3>Horários</h3>
+
+<ul>
+    {% for slot in evento.slots.all %}
+        <li>
+            {{ slot.inicio|time }} - {{ slot.fim|time }}
+
+            {% if slot.reunioes.count == 0 %}
+                <a href="{% url 'reuniao_create' slot.id %}">Agendar reunião</a>
+            {% else %}
+                <strong>Reunião:</strong>
+                {{ slot.reunioes.first.empresa_a }} x {{ slot.reunioes.first.empresa_b }}
+            {% endif %}
+        </li>
+    {% endfor %}
+</ul>
+{% endblock %}
