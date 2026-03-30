@@ -1,0 +1,42 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block content %}
+
+<h2>Criar Nova Rodada</h2>
+
+<form method="post" class="mt-3">
+    {% csrf_token %}
+
+    <div class="mb-3">
+        <label class="form-label">Nome da Rodada</label>
+        <input type="text" name="nome" class="form-control" required>
+    </div>
+    <div class="mb-3">
+        <label class="form-label">Duração (minutos)</label>
+        <select name="duracao" class="form-select" required>
+            {% for valor, label in duracao %}
+                <option value="{{ valor }}">{{ label }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    
+    <div class="mb-3">
+        <label class="form-label">Hora de Início</label>
+
+        <input type="time"
+            name="inicio_ro"
+            class="form-control"
+            required
+            min="{{ evento.inicio_ev|time:'H:i' }}">
+
+        <small class="text-danger fw-bold">
+            A rodada não pode começar antes das {{ evento.inicio_ev|time:"H:i" }}.
+        </small>
+    </div>
+
+    <button class="btn btn-success">Criar Rodada</button>
+    <a href="{% url 'core:rodadas_list' evento.id %}" class="btn btn-secondary">Cancelar</a>
+</form>
+
+{% endblock %}

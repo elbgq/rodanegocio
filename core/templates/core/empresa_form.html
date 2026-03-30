@@ -7,6 +7,11 @@
 <form method="post">
     {% csrf_token %}
     {{ form.as_p }}
-    <button type="submit">Salvar</button>
+    
 </form>
+<div class="mb-3">
+    <button type="submit" class="btn btn-primary">Salvar</button>
+    <a href="{% url 'core:empresa_list' %}" class="btn btn-secondary">Voltar</a>
+    <a href="{% url 'core:empresa_create' %}" class="btn btn-success">Novo cadastro</a>
+</div>
 {% endblock %}

@@ -3,20 +3,29 @@
 {% block content %}
 <div class="p-5 mb-4 rounded-3 home-banner">
     <div class="container-fluid py-5">
-        <h1 class="display-5 fw-bold">Bem-vindo à Rodada de Negócios</h1>
+        <h1 class="display-5 text-primary fw-bold">Bem-vindo à Rodada de Negócios</h1>
         <p class="col-md-8 fs-4">
             Conecte empresas, gere oportunidades e participe de eventos estratégicos.
         </p>
-        <a href="{% url 'core:evento_list' %}" class="btn btn-info btn-lg">Ver eventos</a>
+        <div class="d-flex flex-wrap gap-3 mt-3">
+            <a href="{% url 'core:evento_list' %}" class="btn btn-primary btn-lg">
+                Eventos
+            </a>
+            
+            <a href="{% url 'core:empresa_list' %}" class="btn btn-primary btn-lg">
+                Empresas
+            </a>
+        </div>
+
     </div>
 </div>
 
-<h3>Acesso rápido</h3>
+<h3 class="text-primary fw-bold">Acesso rápido</h3>
 <div class="row">
     <div class="col-md-6">
         <div class="card mb-3">
             <div class="card-body">
-                <h5 class="card-title">Empresas</h5>
+                <h5 class="card-title text-primary fw-bold">Empresas</h5>
                 <p class="card-text">Veja todas as empresas cadastradas.</p>
                 <a href="{% url 'core:empresa_list' %}" class="btn btn-outline-primary">Acessar</a>
             </div>
@@ -26,7 +35,7 @@
     <div class="col-md-6">
         <div class="card mb-3">
             <div class="card-body">
-                <h5 class="card-title">Eventos</h5>
+                <h5 class="card-title text-primary fw-bold">Eventos</h5>
                 <p class="card-text">Consulte os eventos disponíveis e seus horários.</p>
                 <a href="{% url 'core:evento_list' %}" class="btn btn-outline-primary">Acessar</a>
             </div>

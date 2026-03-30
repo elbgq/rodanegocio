@@ -1,17 +1,40 @@
 from django.db import models
 from django.core.exceptions import ValidationError
+from datetime import timedelta
+from django.urls import reverse_lazy
+from django.utils import timezone
+from django.core.exceptions import ValidationError
+from datetime import datetime, time
 
+# ============================
+# EVENTO
+# ============================
+class Evento(models.Model):
+    nome = models.CharField(max_length=255)
+    data = models.DateField(default=timezone.now)
+    local = models.CharField(max_length=255)
+    descricao = models.TextField(blank=True)
+    inicio_ev = models.TimeField(default=time(8, 0))
+    termino_ev = models.TimeField(default=time(18, 0))
 
+    def __str__(self):
+        return f"{self.nome} - {self.data:%d/%m/%Y}"
+# ============================
+# EMPRESA
+# ============================
 class Empresa(models.Model):
     nome = models.CharField(max_length=255)
     descricao = models.TextField(blank=True)
     site = models.URLField(blank=True)
     segmento = models.CharField(max_length=255, blank=True)
+    # representante = models.CharField(max_length=255, blank=True)
 
     def __str__(self):
         return self.nome
-
-
+ 
+# ============================
+# REPRESENTANTE
+# ============================
 class Representante(models.Model):
     empresa = models.ForeignKey(Empresa, on_delete=models.CASCADE, related_name='representantes')
     nome = models.CharField(max_length=255)
@@ -22,58 +45,55 @@ class Representante(models.Model):
         return f'{self.nome} ({self.empresa.nome})'
 
 
-class Evento(models.Model):
-    nome = models.CharField(max_length=255)
-    data = models.DateField()
-    local = models.CharField(max_length=255)
-
-    def __str__(self):
-        return self.nome
-
-
-class SlotHorario(models.Model):
-    evento = models.ForeignKey(Evento, on_delete=models.CASCADE, related_name='slots')
-    inicio = models.DateTimeField()
-    fim = models.DateTimeField()
-
-    def __str__(self):
-        return f'{self.evento.nome} - {self.inicio:%H:%M} às {self.fim:%H:%M}'
-
-
-class Reuniao(models.Model):
-    STATUS_CHOICES = (
-        ('pendente', 'Pendente'),
-        ('confirmada', 'Confirmada'),
-        ('cancelada', 'Cancelada'),
+# ============================
+# RODADA
+# ============================
+class Rodada(models.Model):
+    DURACOES = [
+        (15, "15 minutos"),
+        (20, "20 minutos"),
+        (30, "30 minutos"),
+    ]
+    nome = models.CharField(max_length=100)
+    duracao = models.IntegerField(choices=DURACOES, default=20)
+    # data = models.DateField(default=timezone.now)
+    inicio_ro = models.TimeField(default=timezone.now)
+    fim_ro = models.TimeField(default=timezone.now)
+    evento = models.ForeignKey(
+        Evento,
+        on_delete=models.CASCADE,
+        related_name="rodadas"   
     )
+    def __str__(self):
+        return f"{self.nome} - {self.hora_inicio:%H:%M} - {self.hora_fim:%H:%M}"
 
-    slot = models.ForeignKey(SlotHorario, on_delete=models.CASCADE, related_name='reunioes')
-    empresa_a = models.ForeignKey(Empresa, on_delete=models.CASCADE, related_name='reunioes_como_a')
-    empresa_b = models.ForeignKey(Empresa, on_delete=models.CASCADE, related_name='reunioes_como_b')
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pendente')
+
+# ============================
+# MESA
+# ============================
+class Mesa(models.Model):
+    numero = models.PositiveIntegerField()
+    nome = models.CharField(max_length=100, blank=True, null=True)
+    rodada = models.ForeignKey(Rodada, on_delete=models.CASCADE, related_name="mesas")
 
     class Meta:
-        unique_together = (
-            ('slot', 'empresa_a', 'empresa_b'),
-        )
+        unique_together = ("numero", "rodada")  # evita duplicação de mesas na mesma rodada
 
     def __str__(self):
-        return f'{self.empresa_a} x {self.empresa_b} em {self.slot}'
+        return f"Mesa {self.numero} - {self.rodada.nome}"
 
-    # - Uma empresa não pode ter duas reuniões no mesmo slot
-    def clean(self):
-        if self.empresa_a == self.empresa_b:
-            raise ValidationError('Uma reunião precisa de duas empresas diferentes.')
+# ============================
+# RESERVA
+# ============================
+class Reserva(models.Model):
+    mesa = models.ForeignKey(Mesa, on_delete=models.CASCADE, related_name="reservas")
+    empresa = models.ForeignKey(Empresa, on_delete=models.CASCADE)
+    horario = models.TimeField(null=True, blank=True)  # opcional, se quiser registrar
 
-        # - Uma empresa não pode ter duas reuniões no mesmo horário
-        conflito = Reuniao.objects.filter(slot=self.slot).filter(
-            models.Q(empresa_a=self.empresa_a) |
-            models.Q(empresa_b=self.empresa_a) |
-            models.Q(empresa_a=self.empresa_b) |
-            models.Q(empresa_b=self.empresa_b)
-        )
-        if self.pk:
-            conflito = conflito.exclude(pk=self.pk)
+    class Meta:
+        unique_together = ('mesa', 'empresa')
+    
+    def __str__(self):
+        return f"{self.empresa.nome} na Mesa {self.mesa.numero}"
 
-        if conflito.exists():
-            raise ValidationError('Uma das empresas já possui reunião neste horário.')
+    

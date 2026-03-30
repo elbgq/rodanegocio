@@ -2,22 +2,12 @@
 {% load static %}
 {% block content %}
 <h2>{{ evento.nome }}</h2>
-<p>{{ evento.data }} - {{ evento.local }}</p>
 
-<h3>Horários</h3>
+<p><strong>Data:</strong> {{ evento.data }}</p>
+<p><strong>Local:</strong> {{ evento.local }}</p>
+<p><strong>Descrição:</strong> {{ evento.descricao }}</p>
 
-<ul>
-    {% for slot in evento.slots.all %}
-        <li>
-            {{ slot.inicio|time }} - {{ slot.fim|time }}
+<a href="{% url 'core:evento_update' evento.id %}" class="btn btn-warning">Editar</a>
+<a href="{% url 'core:evento_list' %}" class="btn btn-secondary">Voltar</a>
 
-            {% if slot.reunioes.count == 0 %}
-                <a href="{% url 'reuniao_create' slot.id %}">Agendar reunião</a>
-            {% else %}
-                <strong>Reunião:</strong>
-                {{ slot.reunioes.first.empresa_a }} x {{ slot.reunioes.first.empresa_b }}
-            {% endif %}
-        </li>
-    {% endfor %}
-</ul>
 {% endblock %}

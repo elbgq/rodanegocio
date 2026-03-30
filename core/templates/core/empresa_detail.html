@@ -5,7 +5,33 @@
 
 <p><strong>Segmento:</strong> {{ empresa.segmento }}</p>
 <p><strong>Descrição:</strong> {{ empresa.descricao }}</p>
+<p><strong>Representantes:</strong></p>
+<ul class="list-group">
+    {% for rep in empresa.representantes.all %}
+        <li class="list-group-item d-flex justify-content-between align-items-center">
+            <div>
+                <strong>{{ rep.nome }}</strong><br>
+                <small>{{ rep.email }} — {{ rep.telefone }}</small>
+            </div>
+
+            <div>
+                <a href="{% url 'core:representante_editar' rep.id %}" class="btn btn-warning btn-sm">
+                    Editar
+                </a>
+                <a href="{% url 'core:representante_excluir' rep.id %}" class="btn btn-danger btn-sm">
+                    Excluir
+                </a>
+            </div>
+        </li>
+    {% endfor %}
+</ul>
+
 <p><strong>Site:</strong> <a href="{{ empresa.site }}">{{ empresa.site }}</a></p>
 
-<a href="{% url 'empresa_update' empresa.id %}">Editar empresa</a>
+<a href="{% url 'core:representante_novo' empresa.id %}" class="btn btn-success">
+    Adicionar Representante
+</a>
+<a href="{% url 'core:empresa_update' empresa.id %}" class="btn btn-success">Editar empresa</a>
+<a href="{% url 'core:empresa_list' %}" class="btn btn-secondary">Voltar</a>
+
 {% endblock %}

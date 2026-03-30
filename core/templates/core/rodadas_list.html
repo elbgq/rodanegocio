@@ -1,0 +1,80 @@
+{% extends 'core/base.html' %}
+{% load static %}
+{% block content %}
+<h2>Rodadas do Evento: {{ evento.nome }}</h2>
+<h4>Data do Evento: {{ evento.data }}</h4>
+<br>
+<a href="{% url 'core:rodadas_criar' evento.id %}" class="btn btn-success mb-3">
+    Criar Nova Rodada
+</a>
+<a href="{% url 'core:evento_list' %}" class="btn btn-secondary mb-3">
+    Voltar
+</a>
+<table class="table">
+    <thead>
+        <tr>
+            <th>Nome</th>
+            <th>Duração</th>
+            <th>Início</th>
+            <th>Fim</th>
+            <th>Mesas</th>
+            <th style="width: 260px;">Ações</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for rodada in rodadas %}
+        <tr>
+            <td>{{ rodada.nome }}</td>
+            <td>{{ rodada.duracao }} min</td>
+            <td>{{ rodada.inicio_ro|time:'H:i' }}</td>
+            <td>{{ rodada.fim_ro|time:'H:i' }}</td>
+            <td>{{ rodada.mesas.count }}</td>
+            <td class="d-flex gap-2">
+
+                <!-- Ver Mesas -->
+                <a href="{% url 'core:mesas_da_rodada' rodada.id %}" 
+                   class="btn btn-primary btn-sm">
+                    Mesas
+                </a>
+
+                <!-- Editar -->
+                <a href="{% url 'core:rodadas_editar' rodada.id %}" 
+                   class="btn btn-warning btn-sm">
+                    Editar
+                </a>
+
+                <!-- Excluir -->
+                <a href="{% url 'core:rodadas_excluir' rodada.id %}" 
+                   class="btn btn-danger btn-sm"
+                   onclick="return confirm('Tem certeza que deseja excluir esta rodada?');">
+                    Excluir
+                </a>
+
+                <!-- Gerar Mesas -->
+                {% if rodada.mesas.count == 0 %}
+                <form action="{% url 'core:mesas_gerar' rodada.id %}" method="post" class="d-flex gap-1">
+                    {% csrf_token %}
+                    
+                    <input type="number" name="quantidade" min="1" max="200"
+                        class="form-control form-control-sm"
+                        style="width: 90px;"
+                        placeholder="Qtd" required>
+
+                    <button class="btn btn-success btn-sm">Gerar</button>
+                </form>
+
+                {% else %}
+                <span class="badge bg-success">Mesas criadas</span>
+                {% endif %}
+
+            </td>
+
+        </tr>
+        {% empty %}
+        <tr>
+            <td colspan="5">Nenhuma rodada cadastrada.</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}
