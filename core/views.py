@@ -18,7 +18,14 @@ from django.contrib import messages
 # -----------------------------
 class HomeView(TemplateView):
     template_name = 'core/home.html'
-    
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        # Pegamos todas as rodadas
+        context['rodadas'] = Rodada.objects.all().order_by('evento__data', 'inicio_ro')
+        return context
+
 # -----------------------------
 # EMPRESA
 # -----------------------------
@@ -38,7 +45,7 @@ class EmpresaCreateView(CreateView):
     model = Empresa
     fields = ['nome', 'descricao', 'site', 'segmento']
     template_name = 'core/empresa_form.html'
-    success_url = reverse_lazy('core:empresa_create')
+    success_url = reverse_lazy('core:empresa_list')
 
 
 class EmpresaUpdateView(UpdateView):
@@ -236,20 +243,59 @@ def rodadas_excluir(request, rodada_id):
 # -----------------------------
 # MESAS
 # -----------------------------
+#============CBV===============
+'''
+class MesasDaRodadaView(TemplateView):
+    template_name = "core/mesas_da_rodada.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        rodada_id = self.kwargs["rodada_id"]
+        rodada = get_object_or_404(Rodada, id=rodada_id)
+
+        mesas = rodada.mesas.all().order_by("numero")
+        empresas = Empresa.objects.all()
+        
+        # empresas que já reservaram em QUALQUER mesa desta rodada
+        empresas_reservadas = Reserva.objects.filter(
+            mesa__rodada=rodada
+        ).values_list("empresa_id", flat=True)
+
+        # empresas já reservadas por mesa
+        for mesa in mesas:
+            mesa.empresas_ids = [r.empresa.id for r in mesa.reservas.all()]
+
+        context.update({
+            "rodada": rodada,
+            "mesas": mesas,
+            "empresas": empresas,
+            "empresas_reservadas": empresas_reservadas,
+        })
+
+        return context
+'''
+#============FBV===============
 def mesas_da_rodada(request, rodada_id):
     rodada = get_object_or_404(Rodada, id=rodada_id)
     mesas = rodada.mesas.all().order_by("numero")
     empresas = Empresa.objects.all()
-
+    
+    # empresas que já reservaram em QUALQUER mesa desta rodada
+    empresas_reservadas = Reserva.objects.filter(
+        mesa__rodada=rodada).values_list('empresa_id', flat=True)
+    
     # empresas já reservadas por mesa
     for mesa in mesas:
         mesa.empresas_ids = [r.empresa.id for r in mesa.reservas.all()]
 
-    return render(request, "core/mesas_da_rodada.html", {
-        "rodada": rodada,
-        "mesas": mesas,
-        "empresas": empresas,
-    })
+    context = {
+        "rodada":rodada,
+        "mesas":mesas,
+        "empresas":empresas,
+        "empresas_reservadas":empresas_reservadas,
+    }
+    return render(request, "core/mesas_da_rodada.html", context)
 
 def mesas_gerar(request, rodada_id):
     rodada = get_object_or_404(Rodada, id=rodada_id)
@@ -291,8 +337,8 @@ def mesa_reservar(request, mesa_id):
         return redirect('core:mesas_da_rodada', rodada_id=rodada.id)
 
     # Regra 2: empresa já reservou outra mesa nesta rodada
-    if Reserva.objects.filter(mesa__rodada=rodada, empresa=empresa).exists():
-        messages.error(request, "Esta empresa já está reservada em outra mesa nesta rodada.")
+    if Reserva.objects.filter(mesa__rodada=mesa.rodada, empresa=empresa).exists():
+        messages.error(request, "Esta empresa já possui reserva nesta rodada.")
         return redirect('core:mesas_da_rodada', rodada_id=rodada.id)
 
     # Criar reserva
@@ -332,12 +378,13 @@ def reserva_editar(request, reserva_id):
         messages.success(request, "Reserva atualizada com sucesso!")
         return redirect('core:mesas_da_rodada', rodada_id=rodada.id)
 
-    return render(request, "core/reserva_editar.html", {
+    context = {
         "reserva": reserva,
         "mesa": mesa,
         "rodada": rodada,
         "empresas": empresas,
-    })
+    }
+    return render(request, "core/reserva_editar.html", context)
     
 # -----------------------------
 # PAINEL DA RODADA
@@ -365,7 +412,7 @@ def painel_da_rodada(request, rodada_id):
     mesas_com_vagas = [m for m in mesas if m.reservas.count() < 2]
     mesas_cheias = [m for m in mesas if m.reservas.count() == 2]
 
-    return render(request, "core/painel_rodada.html", {
+    context = {
         "rodada": rodada,
         "mesas": mesas,
         "total_mesas": total_mesas,
@@ -374,4 +421,5 @@ def painel_da_rodada(request, rodada_id):
         "ocupacao_percentual": round(ocupacao_percentual, 1),
         "mesas_com_vagas": mesas_com_vagas,
         "mesas_cheias": mesas_cheias,
-    })
+    }
+    return render(request, "core/painel_rodada.html", context)

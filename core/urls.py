@@ -4,7 +4,7 @@ from . import views
 app_name = 'core'
 
 urlpatterns = [
-    
+     
     # EMPRESAS
     path('empresas/', views.EmpresaListView.as_view(), name='empresa_list'),
     path('empresas/nova/', views.EmpresaCreateView.as_view(), name='empresa_create'),
@@ -42,5 +42,5 @@ urlpatterns = [
     path('reserva/<int:reserva_id>/editar/', views.reserva_editar, name='reserva_editar'),
     
     # Painel
-    path('rodada/<int:rodada_id>/painel/', views.painel_da_rodada, name='painel_da_rodada'),
+    path('rodada/<int:rodada_id>/painel/', views.painel_da_rodada, name='painel_rodada'),
 ]

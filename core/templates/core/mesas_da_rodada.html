@@ -36,10 +36,13 @@
                     {% for r in mesa.reservas.all %}
                         <li class="d-flex justify-content-between align-items-center">
                             <span class="text-primary fw-bold">{{ r.empresa.nome }}</span>
-
                             <div class="d-flex gap-2">
-                                <a href="{% url 'core:reserva_editar' r.id %}" class="btn btn-warning btn-sm">T</a>
-                                <a href="{% url 'core:reserva_cancelar' r.id %}" class="btn btn-danger btn-sm">R</a>
+                                <a href="{% url 'core:reserva_editar' r.id %}"
+                                 class="btn btn-warning btn-sm"
+                                 title="Trocar Reserva">T</a>
+                                <a href="{% url 'core:reserva_cancelar' r.id %}"
+                                 class="btn btn-danger btn-sm"
+                                 title="Remover Reserva">R</a>
                             </div>
                         </li>
                     {% endfor %}
@@ -53,7 +56,7 @@
                             <option value="" disabled selected>Escolha uma empresa</option>
 
                             {% for e in empresas %}
-                                {% if e.id not in mesa.empresas_ids %}
+                                {% if e.id not in mesa.empresas_ids and e.id not in empresas_reservadas %}
                                     <option value="{{ e.id }}">{{ e.nome }}</option>
                                 {% endif %}
                             {% endfor %}

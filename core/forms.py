@@ -1,5 +1,6 @@
 from django import forms
 from .models import Rodada, Representante
+import re
 
 class RodadaForm(forms.ModelForm):
     data = forms.DateField(
@@ -23,3 +24,26 @@ class RepresentanteForm(forms.ModelForm):
     class Meta:
         model = Representante
         fields = ["nome", "email", "telefone"]
+        
+    def clean_email(self):
+        email = self.cleaned_data.get('email')
+
+        if email and not forms.EmailField().clean(email):
+            raise forms.ValidationError("Informe um e-mail válido.")
+
+        return email
+
+    def clean_telefone(self):
+        telefone = self.cleaned_data.get('telefone')
+
+        # Aceita formatos como:
+        # 999999999
+        # (99) 9999-9999
+        # (99) 99999-9999
+        # 99 99999-9999
+        padrao = r'^\(?\d{2}\)?[\s-]?\d{4,5}-?\d{4}$'
+
+        if telefone and not re.match(padrao, telefone):
+            raise forms.ValidationError("Informe um telefone válido. Ex: (11) 98765-4321")
+
+        return telefone

@@ -27,7 +27,7 @@
                 {% if empresa.representantes.all %}
                     <ul class="mb-0">
                         {% for rep in empresa.representantes.all %}
-                            <li>{{ rep.nome }} — {{ rep.email }}</li>
+                            <li>{{ rep.nome }} — {{ rep.email }} - {{ rep.telefone }}</li>
                         {% endfor %}
                     </ul>
                 {% else %}
