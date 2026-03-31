@@ -27,6 +27,26 @@ class HomeView(TemplateView):
         return context
 
 # -----------------------------
+# ACESSO
+# -----------------------------
+
+SENHA_RODANEGOCIOS = "rodanegocios123"  # você define a senha aqui
+
+def acesso_rodanegocios(request):
+    if request.method == "POST":
+        senha_digitada = request.POST.get("senha")
+
+        if senha_digitada == SENHA_RODANEGOCIOS:
+            request.session["acesso_rodanegocios"] = True
+            return redirect("core:home")  # ajuste para sua URL real
+
+        return render(request, "core/digite_senha.html", {
+            "erro": "Senha incorreta."
+        })
+
+    return render(request, "core/digite_senha.html")
+
+# -----------------------------
 # EMPRESA
 # -----------------------------
 class EmpresaListView(ListView):
