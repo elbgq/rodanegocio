@@ -25,7 +25,7 @@ SECRET_KEY = 'django-insecure-!nq0pj3jwa=eq0lv7dh5_s@%s94sj52*c9gak_%cyzi42mpzyc
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['rodadas-eloibgq.pythonanywhere.com']
+ALLOWED_HOSTS = ['127.0.0.1', 'rodadas-eloibgq.pythonanywhere.com']
 
 
 # Application definition
@@ -121,10 +121,10 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
 
 # URL para acessar os arquivos
-STATIC_URL = 'static/'
+STATIC_URL = '/static/'
 
 # Local onde o collectstatic vai reunir os arquivos para produção
-STATICFILES_DIRS = [BASE_DIR / 'static']
+STATICFILES_DIRS = [BASE_DIR / 'core' / 'static',]
 
 # Pastas adicionais onde o Django procura estáticos (ex: raiz do projeto)
 STATIC_ROOT = BASE_DIR / 'staticfiles'
