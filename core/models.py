@@ -25,7 +25,7 @@ class Evento(models.Model):
 class Empresa(models.Model):
     nome = models.CharField(max_length=255)
     descricao = models.TextField(blank=True)
-    site = models.CharField(blank=True)
+    site = models.CharField(max_length=255, blank=True)
     segmento = models.CharField(max_length=255, blank=True)
 
     def save(self, *args, **kwargs):
