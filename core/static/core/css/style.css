@@ -1,0 +1,31 @@
+body {
+    background-color: #bdf1e2; /* seu verde claro */
+}
+
+
+.container {
+    background-color: #bdf1e2 !important; /* igual ao body */
+    padding: 20px;
+    border-radius: 8px;
+}
+header {
+    margin-bottom: 20px;
+}
+
+nav a {
+    margin-right: 10px;
+}
+
+.navbar {
+    color: #0b2e13 !important; /* verde bem escuro */
+    font-weight: 600;
+}
+.card {
+    background-color: #7fcdf1 !important;
+}
+.home-bg {
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    min-height: 80vh;
+}
