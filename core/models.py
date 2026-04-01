@@ -25,9 +25,15 @@ class Evento(models.Model):
 class Empresa(models.Model):
     nome = models.CharField(max_length=255)
     descricao = models.TextField(blank=True)
-    site = models.URLField(blank=True)
+    site = models.CharField(blank=True)
     segmento = models.CharField(max_length=255, blank=True)
-    # representante = models.CharField(max_length=255, blank=True)
+
+    def save(self, *args, **kwargs):
+        if self.site:
+            # Se o usuário não colocou http:// ou https://, adiciona automaticamente
+            if not self.site.startswith(("http://", "https://")):
+                self.site = "https://" + self.site
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return self.nome

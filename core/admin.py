@@ -1,5 +1,6 @@
 from django.contrib import admin
 from .models import Evento, Empresa, Rodada, Representante, Mesa
+from .forms import EmpresaForm
 
 # Register your models here.
 @admin.register(Evento)
@@ -9,6 +10,7 @@ class EventoAdmin(admin.ModelAdmin):
 
 @admin.register(Empresa)
 class EmpresaAdmin(admin.ModelAdmin):
+    form: EmpresaForm
     list_display = ('nome', 'segmento')
     search_fields = ('nome', 'segmento')
     

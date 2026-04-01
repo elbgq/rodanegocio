@@ -2,6 +2,20 @@ from django import forms
 from .models import Rodada, Representante
 import re
 
+from django import forms
+from .models import Empresa
+
+class EmpresaForm(forms.ModelForm):
+    class Meta:
+        model = Empresa
+        fields = "__all__"
+
+    def clean_site(self):
+        site = self.cleaned_data.get("site")
+        if site and not site.startswith(("http://", "https://")):
+            site = "https://" + site
+        return site
+    
 class RodadaForm(forms.ModelForm):
     data = forms.DateField(
         input_formats=["%Y-%m-%d"],
