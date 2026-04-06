@@ -4,8 +4,8 @@
 <h2>Rodadas do Evento: {{ evento.nome }}</h2>
 <h4>Data do Evento: {{ evento.data }}</h4>
 <br>
-<a href="{% url 'core:rodadas_criar' evento.id %}" class="btn btn-success mb-3">
-    Criar Nova Rodada
+<a href="{% url 'core:reuniao_criar' evento.id %}" class="btn btn-success mb-3">
+    Criar Nova Reunião
 </a>
 <a href="{% url 'core:evento_list' %}" class="btn btn-secondary mb-3">
     Voltar
@@ -29,7 +29,7 @@
             <td>{{ rodada.inicio_ro|time:'H:i' }}</td>
             <td>{{ rodada.fim_ro|time:'H:i' }}</td>
             <td>{{ rodada.mesas.count }}</td>
-            <td class="d-flex gap-2">
+            <td class="text-center align-middle">
 
                 <!-- Ver Mesas -->
                 <a href="{% url 'core:mesas_da_rodada' rodada.id %}" 

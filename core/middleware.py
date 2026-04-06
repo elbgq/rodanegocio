@@ -8,9 +8,9 @@ class RodanegociosProtectionMiddleware:
     def __call__(self, request):
 
         caminho = request.path
-
+ 
         # Libera a página de acesso
-        if caminho.startswith("/acesso/"):
+        if caminho.startswith("/acesso"):
             return self.get_response(request)
 
         # Libera arquivos estáticos (CSS, JS, imagens)

@@ -1,0 +1,22 @@
+{% extends 'core/base.html' %}
+{% load static %}
+{% block content %}
+<h2 class="mb-4">Cadastro de Interesse</h2>
+
+<form method="post" class="mt-3">
+    {% csrf_token %}
+
+    <div class="mb-3">
+        <label class="form-label">Categoria</label>
+        {{ form.categoria }}
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label">Nome do Interesse</label>
+        {{ form.nome }}
+    </div>
+
+    <button type="submit" class="btn btn-primary">Salvar</button>
+    <a href="{% url 'core:interesse_list' %}" class="btn btn-secondary">Voltar</a>
+</form>
+{% endblock %}

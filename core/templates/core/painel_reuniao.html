@@ -2,7 +2,7 @@
 {% load static %}
 {% block content %}
 
-<h2>Painel da Rodada: {{ rodada.nome }}</h2>
+<h2>Painel da Rodada: {{ reuniao.nome }}</h2>
 
 <div class="row mt-4">
 
@@ -69,7 +69,7 @@
     {% endfor %}
 </ul>
 
-<a href="{% url 'core:mesas_da_rodada' rodada.id %}" class="btn btn-primary mt-3">
+<a href="{% url 'core:mesas_da_reuniao' reuniao.id %}" class="btn btn-primary mt-3">
     Voltar para Mesas
 </a>
 

@@ -3,20 +3,20 @@
 
 {% block content %}
 
-<h2>Mesas da Rodada: {{ rodada.nome }}</h2>
+<h2>Mesas de Reunião: {{ reuniao.nome }}</h2>
 
 <div class="mb-3">
     <span class="badge bg-primary fs-6">
-        {{ rodada.evento.data|date:"d/M/Y" }}
+        {{ reuniao.evento.data|date:"d/M/Y" }}
     </span>
     <span class="badge bg-secondary fs-6">
-        {{ rodada.inicio_ro|time:'H:i' }} - {{ rodada.fim_ro|time:'H:i' }}
+        {{ reuniao.inicio_ro|time:'H:i' }} - {{ reuniao.fim_ro|time:'H:i' }}
     </span>
     <span class="badge bg-info fs-6">
-        {{ rodada.duracao }} min
+        {{ reuniao.duracao }} min
     </span>
 </div>
-<a href="{% url 'core:rodadas_list' rodada.evento.id %}" class="btn btn-secondary mb-3">
+<a href="{% url 'core:reuniao_list' reuniao.evento.id %}" class="btn btn-secondary mb-3">
     Voltar
 </a>
 <div class="row row-cols-2 row-cols-md-4 g-3">

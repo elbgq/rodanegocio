@@ -24,15 +24,15 @@
             <td>{{ evento.local }}</td>
             <td>{{ evento.inicio_ev }}</td>
             <td>{{ evento.termino_ev }}</td>
-            <td>
+            <td class="text-center align-middle">
                 <a href="{% url 'core:evento_detail' evento.id %}" class="btn btn-sm btn-info">
                     Detalhes</a>
                 <a href="{% url 'core:evento_update' evento.id %}" class="btn btn-sm btn-warning">
                     Editar</a>
                 <a href="{% url 'core:evento_delete' evento.id %}" class="btn btn-sm btn-danger">
                     Excluir</a>
-                <a href="{% url 'core:rodadas_list' evento.id %}" class="btn btn-sm btn-success">
-                    Rodadas</a>
+                <a href="{% url 'core:reunioes_list' evento.id %}" class="btn btn-sm btn-success">
+                    Reuniões</a>
             </td>
         </tr>
         {% endfor %}

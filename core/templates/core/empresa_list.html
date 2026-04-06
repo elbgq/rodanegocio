@@ -4,6 +4,9 @@
 {% block content %}
 <h2 class="mb-4">Empresas</h2>
 
+<a href="{% url 'core:interesse_list' %}" class="btn btn-secondary mb-3">
+    Gerenciar interesses
+</a>
 <a href="{% url 'core:empresa_create' %}" class="btn btn-primary mb-3">
     Cadastrar nova empresa
 </a>
@@ -12,8 +15,9 @@
     <thead class="table-dark">
         <tr>
             <th>Nome</th>
+            <th>Modalidade</th>
             <th>Representantes</th>
-            <th>Segmento</th>
+            <th>Interesses</th>
             <th style="width: 150px;">Ações</th>
         </tr>
     </thead>
@@ -22,9 +26,9 @@
         {% for empresa in empresas %}
         <tr>
             <td class="fw-bold">{{ empresa.nome }}</td>
-
+            <td class="fw-bold">{{ empresa.modalidade }}</td>
             <td>
-                {% if empresa.representantes.all %}
+                {% if empresa.representantes.exists %}
                     <ul class="mb-0">
                         {% for rep in empresa.representantes.all %}
                             <li>{{ rep.nome }} — {{ rep.email }} - {{ rep.telefone }}</li>
@@ -36,14 +40,34 @@
             </td>
 
             <td>
-                {% if empresa.segmento %}
-                    {{ empresa.segmento }}
+                {% if empresa.interesses.exists %}
+                    <ul class="mb-0">
+                        {% for interesse in empresa.interesses.all %}
+                            <li>{{ interesse.nome }}</li>
+                        {% endfor %}
+                    </ul>
                 {% else %}
                     <span class="text-muted">—</span>
                 {% endif %}
-            </td>
+            </td> 
 
             <td>
+                {% if empresa.modalidade == "COMPRADOR" %}
+                    <a href="{% url 'core:perfil_comprador' empresa.id %}" 
+                    class="btn btn-sm btn-primary">
+                        Perfil Comprador
+                    </a>
+                {% else %}
+                    <a href="{% url 'core:perfil_expositor' empresa.id %}" 
+                    class="btn btn-sm btn-success">
+                        Perfil Expositor
+                    </a>
+                {% endif %}
+
+                <a href="{% url 'core:empresa_update' empresa.id %}" 
+                   class="btn btn-warning btn-sm">
+                    Editar
+                </a>
                 <a href="{% url 'core:empresa_detail' empresa.id %}" 
                    class="btn btn-outline-primary btn-sm">
                     Ver detalhes

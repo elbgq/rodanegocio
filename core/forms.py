@@ -1,5 +1,6 @@
 from django import forms
-from .models import Rodada, Representante
+from .models import (Reuniao, Representante, PerfilComprador,
+                     PerfilExpositor, Empresa, Interesse)
 import re
 
 from django import forms
@@ -9,14 +10,57 @@ class EmpresaForm(forms.ModelForm):
     class Meta:
         model = Empresa
         fields = "__all__"
+        widgets = {
+            "interesses": forms.CheckboxSelectMultiple(),  # ou forms.SelectMultiple()
+        }
+        
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        # Adiciona classes Bootstrap automaticamente
+        for field_name, field in self.fields.items():
+            if field.widget.__class__.__name__ not in ["CheckboxSelectMultiple"]:
+                field.widget.attrs.update({"class": "form-control"})
 
     def clean_site(self):
         site = self.cleaned_data.get("site")
         if site and not site.startswith(("http://", "https://")):
             site = "https://" + site
         return site
+
+class PerfilCompradorForm(forms.ModelForm):
+    class Meta:
+        model = PerfilComprador
+        fields = "__all__"
+        widgets = {
+            "paises_que_trabalha": forms.CheckboxSelectMultiple(),
+            "preco_medio": forms.CheckboxSelectMultiple(),
+            "tipos_produto": forms.CheckboxSelectMultiple(),
+            "regioes_interesse": forms.CheckboxSelectMultiple(),
+        }
+
+class PerfilExpositorForm(forms.ModelForm):
+    class Meta:
+        model = PerfilExpositor
+        fields = "__all__"
+        widgets = {
+            "preco_faixa": forms.CheckboxSelectMultiple(),
+            "tipos_produto": forms.CheckboxSelectMultiple(),
+            "regioes_brasil": forms.CheckboxSelectMultiple(),
+            "perfil_comprador_desejado": forms.CheckboxSelectMultiple(),
+        }
+        
+class InteresseForm(forms.ModelForm):
+    class Meta:
+        model = Interesse
+        fields = ["categoria", "nome"]
+        widgets = {
+            "categoria": forms.Select(attrs={"class": "form-select"}),
+            "nome": forms.TextInput(attrs={"class": "form-control"}),
+        }
     
-class RodadaForm(forms.ModelForm):
+    
+class ReuniaoForm(forms.ModelForm):
     data = forms.DateField(
         input_formats=["%Y-%m-%d"],
         widget=forms.DateInput(format="%Y-%m-%d", attrs={"type": "date"}),
@@ -24,7 +68,7 @@ class RodadaForm(forms.ModelForm):
     )
 
     class Meta:
-        model = Rodada
+        model = Reuniao
         fields = ["nome", "data", "duracao"]
         
     def __init__(self, *args, **kwargs):

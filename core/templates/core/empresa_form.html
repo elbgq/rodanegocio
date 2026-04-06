@@ -1,18 +1,91 @@
 {% extends 'core/base.html' %}
 {% load static %}
-
+{% load form_filters %}
 {% block content %}
 <h2>Cadastro de Empresa</h2>
 
-<form method="post">
+<form method="post" class="mt-3">
     {% csrf_token %}
-    {{ form.as_p }}
+
+    <div class="row">
+        <!-- Nome -->
+        <div class="col-md-6 mb-3">
+            <label class="form-label">Nome</label>
+            {{ form.nome }}
+        </div>
+
+        <!-- Modalidade -->
+        <div class="col-md-6 mb-3">
+            <label class="form-label">Modalidade</label>
+            {{ form.modalidade }}
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Site -->
+        <div class="col-md-6 mb-3">
+            <label class="form-label">Site</label>
+            {{ form.site }}
+        </div>
+
+        <!-- Segmento -->
+        <div class="col-md-6 mb-3">
+            <label class="form-label">Segmento</label>
+            {{ form.segmento }}
+        </div>
+    </div>
+
+    <!-- Interesses agrupados por categoria -->
+    <div class="mb-4">
+        <label class="form-label">Interesses</label>
+
+        {% for categoria in categorias_interesses %}
+            
+            <h5 class="mt-3">{{ categoria }}</h5>
+
+            <div class="row">
+                {% for interesse in interesses_por_categoria|get_item:categoria %}
+                    <div class="col-md-4">
+                        <div class="form-check">
+
+                            <input type="checkbox"
+                                name="interesses"
+                                value="{{ interesse.id }}"
+                                class="form-check-input"
+                                {% if interesse.id in form.initial.interesses %}checked{% endif %}>
+
+                            <label class="form-check-label">
+                                {{ interesse.nome }}
+                            </label>
+
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+
+        {% endfor %}
+
+        <a href="{% url 'core:interesse_create' %}" 
+        class="btn btn-outline-primary btn-sm mt-3">
+            + Novo interesse
+        </a>
+    </div>
+
     <button type="submit" class="btn btn-primary">Salvar</button>
 </form>
+
 <br>
+
 <div class="mb-3">
-    
-    <a href="{% url 'core:empresa_list' %}" class="btn btn-secondary">Voltar</a>
-    <a href="{% url 'core:empresa_create' %}" class="btn btn-success">Novo cadastro</a>
+    <a href="{% url 'core:interesse_list' %}" class="btn btn-outline-secondary btn-sm mb-3">
+        Gerenciar interesses
+    </a>
+    <a href="{% url 'core:empresa_list' %}" class="btn btn-secondary">
+        Voltar
+    </a>
+    <a href="{% url 'core:empresa_create' %}" class="btn btn-success">
+        Novo cadastro
+    </a>
 </div>
+
 {% endblock %}
