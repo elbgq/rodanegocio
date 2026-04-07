@@ -16,14 +16,20 @@ urlpatterns = [
     # MACHING DE PERFIS
     path("empresa/<int:pk>/perfil-comprador/", views.PerfilCompradorUpdateView.as_view(), 
          name="perfil_comprador"),
-
     path("empresa/<int:pk>/perfil-expositor/", views.PerfilExpositorUpdateView.as_view(), 
          name="perfil_expositor"),
+    
+    # CATEGORIAS
+    path("categorias/", views.categoria_list, name="categoria_list"),
+    path("categorias/nova/", views.categoria_create, name="categoria_create"),
+    path("categorias/<int:pk>/editar/", views.categoria_update, name="categoria_update"),
+    path("categorias/<int:pk>/excluir/", views.categoria_delete, name="categoria_delete"),
     
     # INTERESSES
     path("interesses/", views.InteresseListView.as_view(), name="interesse_list"),
     path("interesses/novo/", views.InteresseCreateView.as_view(), name="interesse_create"),
     path("interesses/<int:pk>/editar/", views.InteresseUpdateView.as_view(), name="interesse_update"),
+    path("interesses/<int:pk>/excluir/", views.InteresseDeleteView.as_view(), name="interesse_delete"),
     
     # REPRESENTANTES
     path("empresas/<int:empresa_id>/representantes/novo/",views.RepresentanteCreateView.as_view(),
@@ -39,27 +45,22 @@ urlpatterns = [
     path('eventos/<int:pk>/', views.EventoDetailView.as_view(), name='evento_detail'),
     path('eventos/<int:pk>/editar/', views.EventoUpdateView.as_view(), name='evento_update'),
     path('eventos/<int:pk>/excluir/', views.EventoDeleteView.as_view(), name='evento_delete'),
-    
-    # REUNIÕES
-    path('evento/<int:evento_id>/reunioes/', views.reunioes_do_evento, name='reunioes_list'),
-    path('evento/<int:evento_id>/reuniao/criar/', views.reuniao_criar, name='reuniao_criar'),
-    path('reuniao/<int:reuniao_id>/editar/', views.reunioes_editar, name='reunioes_editar'),
-    path('reuniao/<int:reuniao_id>/excluir/', views.reunioes_excluir, name='reunioes_excluir'),
+     
+    # RODADAS
+    path("evento/<int:evento_id>/rodadas/gerar/", views.rodadas_gerar, name="rodadas_gerar"),
+    path('evento/<int:evento_id>/rodadas/', views.rodadas_do_evento, name='rodadas_list'),
+    path('rodada/<int:rodada_id>/editar/', views.rodadas_editar, name='rodadas_editar'),
+    path('rodada/<int:rodada_id>/excluir/', views.rodadas_excluir, name='rodadas_excluir'),
 
     # Mesas
-    path('reuniao/<int:reuniao_id>/mesas/', views.mesas_da_reuniao, name='mesas_da_reuniao'),
-    path('reuniao/<int:reuniao_id>/mesas/gerar/', views.mesas_gerar, name='mesas_gerar'),
-
-    # Reservas
-    path('mesa/<int:mesa_id>/reservar/', views.mesa_reservar, name='mesa_reservar'),
-    path('reserva/<int:reserva_id>/cancelar/', views.reserva_cancelar, name='reserva_cancelar'),
-    path('reserva/<int:reserva_id>/editar/', views.reserva_editar, name='reserva_editar'),
+    path('rodada/<int:rodada_id>/mesas/', views.mesas_da_rodada, name='mesas_da_rodada'),
+    path('rodada/<int:rodada_id>/mesas/gerar/', views.mesas_gerar, name='mesas_gerar'),
+    path("mesas/<int:pk>/relatorio/", views.mesa_relatorio, name="mesa_relatorio"),
     
     # Painel
-    path('reuniao/<int:reuniao_id>/painel/', views.painel_da_reuniao, name='painel_reuniao'),
+    path('rodada/<int:rodada_id>/painel/', views.painel_da_rodada, name='painel_rodada'),
     
     # Acesso
     path("acesso/", views.acesso_rodanegocios, name="acesso_rodanegocios"),
-
 
 ]

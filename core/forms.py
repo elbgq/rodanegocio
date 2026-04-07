@@ -1,6 +1,6 @@
 from django import forms
-from .models import (Reuniao, Representante, PerfilComprador,
-                     PerfilExpositor, Empresa, Interesse)
+from .models import (Rodada, Representante, PerfilComprador,
+                     PerfilExpositor, Empresa, Interesse, Categoria)
 import re
 
 from django import forms
@@ -49,7 +49,16 @@ class PerfilExpositorForm(forms.ModelForm):
             "regioes_brasil": forms.CheckboxSelectMultiple(),
             "perfil_comprador_desejado": forms.CheckboxSelectMultiple(),
         }
-        
+
+class CategoriaForm(forms.ModelForm):
+    class Meta:
+        model = Categoria
+        fields = ["nome", "descricao", "ordem"]
+        widgets = {
+            "nome": forms.TextInput(attrs={"class": "form-control"}),
+            "descricao": forms.Textarea(attrs={"class": "form-control", "rows": 3}),
+            "ordem": forms.NumberInput(attrs={"class": "form-control"}),
+        }
 class InteresseForm(forms.ModelForm):
     class Meta:
         model = Interesse
@@ -60,7 +69,7 @@ class InteresseForm(forms.ModelForm):
         }
     
     
-class ReuniaoForm(forms.ModelForm):
+class RodadaForm(forms.ModelForm):
     data = forms.DateField(
         input_formats=["%Y-%m-%d"],
         widget=forms.DateInput(format="%Y-%m-%d", attrs={"type": "date"}),
@@ -68,7 +77,7 @@ class ReuniaoForm(forms.ModelForm):
     )
 
     class Meta:
-        model = Reuniao
+        model = Rodada
         fields = ["nome", "data", "duracao"]
         
     def __init__(self, *args, **kwargs):

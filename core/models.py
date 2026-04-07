@@ -19,21 +19,24 @@ class Evento(models.Model):
 
     def __str__(self):
         return f"{self.nome} - {self.data:%d/%m/%Y}"
+
     
 # ============================
 # INTERESSE
 # ============================
-class Interesse(models.Model):
-    CATEGORIAS = [
-        ("PAIS", "País"),
-        ("PRECO", "Faixa de Preço"),
-        ("TIPO", "Tipo de Produto"),
-        ("PERFIL", "Perfil Desejado"),
-        ("REGIAO", "Região do Brasil"),
-        ("OUTRO", "Outro"),
-    ]
+class Categoria(models.Model):
+    nome = models.CharField(max_length=100, unique=True)
+    descricao = models.TextField(blank=True, null=True)
+    ordem = models.PositiveIntegerField(default=0)
 
-    categoria = models.CharField(max_length=20, choices=CATEGORIAS, default="OUTRO")
+    class Meta:
+        ordering = ["ordem", "nome"]
+
+    def __str__(self):
+        return self.nome
+    
+class Interesse(models.Model):
+    categoria = models.ForeignKey(Categoria, on_delete=models.CASCADE, null=True, blank=True)
     nome = models.CharField(max_length=100, unique=True)
     
     class Meta:
@@ -65,7 +68,10 @@ class Empresa(models.Model):
 
     def __str__(self):
         return self.nome
- 
+
+# ============================
+# PERFIL DA EMPRESA
+# ============================
 class PerfilComprador(models.Model):
     empresa = models.OneToOneField(Empresa, on_delete=models.CASCADE)
 
@@ -105,9 +111,9 @@ class Representante(models.Model):
 
 
 # ============================
-# REUNIÃO
+# RODADA
 # ============================
-class Reuniao(models.Model):
+class Rodada(models.Model):
     DURACOES = [
         (15, "15 minutos"),
         (20, "20 minutos"),
@@ -120,7 +126,7 @@ class Reuniao(models.Model):
     evento = models.ForeignKey(
         Evento,
         on_delete=models.CASCADE,
-        related_name="reunioes"   
+        related_name="rodadas"   
     )
     def __str__(self):
         return f"{self.nome} - {self.hora_inicio:%H:%M} - {self.hora_fim:%H:%M}"
@@ -130,16 +136,44 @@ class Reuniao(models.Model):
 # MESA
 # ============================
 class Mesa(models.Model):
+    rodada = models.ForeignKey(Rodada, on_delete=models.CASCADE,
+                               null=True, blank=True, related_name="mesas")
     numero = models.PositiveIntegerField()
-    nome = models.CharField(max_length=100, blank=True, null=True)
-    reuniao = models.ForeignKey(Reuniao, on_delete=models.CASCADE, related_name="mesas")
 
+    comprador = models.ForeignKey(
+        Empresa,
+        on_delete=models.CASCADE,
+        related_name="mesas_como_comprador",
+        null=True,
+        blank=True
+    )
+
+    expositor = models.ForeignKey(
+        Empresa,
+        on_delete=models.CASCADE,
+        related_name="mesas_como_expositor",
+        null=True,
+        blank=True
+    )
+    @property
+    def status(self):
+        qtd = self.reservas.count()
+        if qtd == 2:
+            return "completa"
+        elif qtd == 1:
+            return "vaga"
+        return "vazia"
+    
+    def __str__(self):
+        return f"Mesa {self.numero} - Rodada {self.rodada.numero}"
+    
+'''
     class Meta:
-        unique_together = ("numero", "reuniao")  # evita duplicação de mesas na mesma reuniao
+        unique_together = ("numero", "rodada")  # evita duplicação de mesas na mesma rodada
 
     def __str__(self):
-        return f"Mesa {self.numero} - {self.reuniao.nome}"
-
+        return f"Mesa {self.numero} - {self.rodada.nome}"
+'''
 # ============================
 # RESERVA
 # ============================
@@ -148,6 +182,7 @@ class Reserva(models.Model):
     empresa = models.ForeignKey(Empresa, on_delete=models.CASCADE)
     horario = models.TimeField(null=True, blank=True)  # opcional, se quiser registrar
 
+    
     class Meta:
         unique_together = ('mesa', 'empresa')
     

@@ -4,9 +4,9 @@ from django.views.generic import (
     ListView, DetailView, CreateView, UpdateView, TemplateView, DeleteView
 )
 from django.urls import reverse_lazy
-from .models import (Empresa, Evento, Reuniao, Representante, Mesa, Reserva,
-                     PerfilComprador, PerfilExpositor, Interesse)
-from .forms import (ReuniaoForm, RepresentanteForm, EmpresaForm,
+from .models import (Empresa, Evento, Rodada, Representante, Mesa, Reserva,
+                     PerfilComprador, PerfilExpositor, Interesse, Categoria)
+from .forms import (RepresentanteForm, EmpresaForm, CategoriaForm,
                     PerfilCompradorForm, PerfilExpositorForm, InteresseForm)
 from django.views.generic import TemplateView
 from django.core.exceptions import ValidationError
@@ -14,6 +14,8 @@ from datetime import datetime, timedelta, time, date
 from django.views import View
 from django.contrib import messages
 from django.core.paginator import Paginator
+from core.services.matchmaking import gerar_todas_as_rodadas
+
 
 # -----------------------------
 # Home
@@ -24,8 +26,8 @@ class HomeView(TemplateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
 
-        # Pegamos todas as reunioes
-        context['reunioes'] = Reuniao.objects.all().order_by('evento__data', 'inicio_ro')
+        # Pegamos todas as rodadas
+        context['rodadas'] = Rodada.objects.all().order_by('evento__data', 'inicio_ro')
         return context
 
 # -----------------------------
@@ -56,6 +58,8 @@ class EmpresaListView(ListView):
     form_class = EmpresaForm
     template_name = 'core/empresa_list.html'
     context_object_name = 'empresas'
+    paginate_by = 15  # Exibe 20 por página
+    ordering = ["nome"]  # Ordena por categoria e depois por nome
 
 
 class EmpresaDetailView(DetailView):
@@ -116,12 +120,11 @@ class EmpresaUpdateView(UpdateView):
             categoria: Interesse.objects.filter(categoria=categoria)
             for categoria in categorias
         }
-
+ 
         context["categorias_interesses"] = categorias
         context["interesses_por_categoria"] = interesses_por_categoria
         
         return context
-
 
 class PerfilCompradorUpdateView(UpdateView):
     model = PerfilComprador
@@ -155,12 +158,68 @@ class PerfilExpositorUpdateView(UpdateView):
         context["title"] = f"Perfil do Expositor — {self.object.empresa.nome}"
         return context
 
+# -----------------------------
+# INTERESSES
+# -----------------------------
+#===========CATEGORIA DE INTERESSE================
+
+def categoria_list(request):
+    categorias = Categoria.objects.all()
+    return render(request, "core/categoria_list.html", {"categorias": categorias})
+
+def categoria_create(request):
+    if request.method == "POST":
+        form = CategoriaForm(request.POST)
+        if form.is_valid():
+            form.save()
+            return redirect("core:categoria_list")
+    else:
+        form = CategoriaForm()
+
+    return render(request, "core/categoria_form.html", {"form": form})
+
+def categoria_update(request, pk):
+    categoria = get_object_or_404(Categoria, pk=pk)
+
+    if request.method == "POST":
+        form = CategoriaForm(request.POST, instance=categoria)
+        if form.is_valid():
+            form.save()
+            return redirect("core:categoria_list")
+    else:
+        form = CategoriaForm(instance=categoria)
+
+    return render(
+        request,
+        "core/categoria_form.html",
+        {"form": form, "categoria": categoria}
+    )
+
+def categoria_delete(request, pk):
+    categoria = get_object_or_404(Categoria, pk=pk)
+
+    if request.method == "POST":
+        categoria.delete()
+        return redirect("core:categoria_list")
+
+    return render(
+        request,
+        "core/categoria_confirm_delete.html",
+        {"categoria": categoria}
+    )
+    
+#===========INTERESSES================
 class InteresseListView(ListView):
     model = Interesse
     template_name = "core/interesse_list.html"
     context_object_name = "interesses"
     paginate_by = 15  # Exibe 20 por página
     ordering = ["categoria", "nome"]  # Ordena por categoria e depois por nome
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["categorias"] = Categoria.objects.all()
+        return context
 
 
 class InteresseCreateView(CreateView):
@@ -175,6 +234,12 @@ class InteresseUpdateView(UpdateView):
     form_class = InteresseForm
     template_name = "core/interesse_form.html"
     success_url = reverse_lazy("core:interesse_list")
+
+class InteresseDeleteView(DeleteView):
+    model = Interesse
+    template_name = "core/interesse_confirm_delete.html"
+    success_url = reverse_lazy("core:interesse_list")
+
     
 # -----------------------------
 # REPRESENTANTE
@@ -252,275 +317,136 @@ class EventoDeleteView(DeleteView):
 
 
 # -----------------------------
-# REUNIÕES
+# RODADAS
 # -----------------------------
 
-def reunioes_do_evento(request, evento_id):
+def rodadas_list(request, evento_id):
     evento = get_object_or_404(Evento, id=evento_id)
-    reunioes = evento.reunioes.all()
-    return render(request, 'core/reunioes_list.html', {
-        'evento': evento,
-        'reunioes': reunioes
-    })
+    rodadas = evento.rodadas.all().order_by("inicio_ro", "numero")
 
-def reuniao_criar(request, evento_id):
-    evento = get_object_or_404(Evento, id=evento_id)
-
-    if request.method == 'POST':
-        nome = request.POST.get('nome')
-        duracao = int(request.POST.get('duracao'))
-        inicio_str = request.POST.get('inicio_ro')
-        
-        # Converte para datetime
-        inicio_dt = datetime.combine(evento.data, datetime.strptime(inicio_str, "%H:%M").time())
-        fim_dt = inicio_dt + timedelta(minutes=duracao)
-
-        # Converte horários do evento
-        evento_inicio_dt = datetime.combine(evento.data, evento.inicio_ev)
-        evento_termino_dt = datetime.combine(evento.data, evento.termino_ev)
-
-        # Valida início
-        if inicio_dt < evento_inicio_dt:
-            messages.error(request, "A reunião não pode começar antes do início do evento.")
-            return redirect("core:reunioes_criar", evento_id=evento.id)
-
-        # Valida fim
-        if fim_dt > evento_termino_dt:
-            messages.error(request, "A reunião ultrapassa o horário final do evento.")
-            return redirect("core:reunioes_criar", evento_id=evento.id)
-
-       # Criar reunião
-        Reuniao.objects.create(
-            evento=evento,
-            nome=nome,
-            duracao=duracao,
-            inicio_ro=inicio_dt.time(),
-            fim_ro=fim_dt.time()
-        )
-
-        messages.success(request, "Reunião criada com sucesso!")
-        return redirect("core:reunioes_list", evento_id=evento.id)
-
-    return render(request, "core/reunioes_criar.html", {
+    return render(request, "core/rodadas_list.html", {
         "evento": evento,
-        "duracao": Reuniao.DURACOES
+        "rodadas": rodadas,
     })
-
-def reunioes_editar(request, reuniao_id):
-    reuniao = get_object_or_404(Reuniao, id=reuniao_id)
-    evento = reuniao.evento  # para redirecionar depois
+    
+# ===================================================================================
+# Esta view é para gerar as rodadas automaticamente usando o algoritmo de matchmaking
+# ===================================================================================
+def rodadas_gerar(request, evento_id):
+    evento = get_object_or_404(Evento, id=evento_id)
 
     if request.method == "POST":
-        reuniao.nome = request.POST.get("nome")
-        reuniao.duracao = request.POST.get("duracao")
-        inicio_str = request.POST.get("inicio_ro")
-        fim_str = request.POST.get("fim_ro")
-        
-        # Converte horários informados
-        inicio_dt = datetime.combine(evento.data, datetime.strptime(inicio_str, "%H:%M").time())
-        fim_dt = datetime.combine(evento.data, datetime.strptime(fim_str, "%H:%M").time())
+        qtd_mesas = int(request.POST["qtd_mesas"])
+        duracao = int(request.POST["duracao"])
+        inicio_rodadas = request.POST["inicio_rodadas"]
+        intervalo = int(request.POST["intervalo"])
+        pausa_cada = int(request.POST["pausa_cada"])
+        pausa_duracao = int(request.POST["pausa_duracao"])
+
+        rodadas = gerar_todas_as_rodadas(
+            evento,
+            qtd_mesas,
+            duracao,
+            inicio_rodadas,
+            intervalo,
+            pausa_cada,
+            pausa_duracao
+        )
 
 
-        # Converte horário do evento informado
-        evento_inicio_dt = datetime.combine(evento.data, evento.inicio_ev)
-        evento_termino_dt = datetime.combine(evento.data, evento.termino_ev)
+        return render(request, "core/rodadas_geradas.html", {
+            "evento": evento,
+            "rodadas": rodadas
+        })
 
-        
-        # Valida início reunião >= início do evento
-        if inicio_dt < evento_inicio_dt:
-            messages.error(request, "A reunião não pode começar antes do início do evento.")
-            return redirect('core:reunioes_editar', reuniao_id=reuniao.id)
-
-        # Valida fim
-        if fim_dt > evento_termino_dt:
-            messages.error(request, "A reunião ultrapassa o horário final do evento.")
-            return redirect('core:reunioes_editar', reuniao_id=reuniao.id)
-
-        # Salva os horários corrigidos
-        reuniao.inicio_ro = inicio_dt.time()
-        reuniao.fim_ro = fim_dt.time()
-
-        reuniao.save()
-
-        messages.success(request, "Reunião atualizada com sucesso!")
-        return redirect('core:reunioes_list', evento_id=evento.id)
-
-    return render(request, "core/reunioes_editar.html", {
-        "reuniao": reuniao,
-        "evento": evento
+    return render(request, "core/rodadas_gerar.html", {
+        "evento": evento,
+        "duracoes": Rodada.DURACOES
+    })
+     
+# ========================================================
+def rodadas_do_evento(request, evento_id):
+    evento = get_object_or_404(Evento, id=evento_id)
+    rodadas = evento.rodadas.all()
+    return render(request, 'core/rodadas_list.html', {
+        'evento': evento,
+        'rodadas': rodadas
     })
 
 
-def reunioes_excluir(request, reuniao_id):
-    reuniao = get_object_or_404(Reuniao, id=reuniao_id)
-    evento = reuniao.evento  # para redirecionar depois
+def rodadas_editar(request, rodada_id):
+    rodada = get_object_or_404(Rodada, id=rodada_id)
 
-    # Exclui a reunião
-    reuniao.delete()
+    if request.method == "POST":
+        rodada.nome = request.POST["nome"]
+        rodada.duracao = request.POST["duracao"]
+        rodada.save()
+        return redirect("core:rodadas_list", rodada.evento.id)
 
-    messages.success(request, "Reunião excluída com sucesso!")
-    return redirect('core:reunioes_list', evento_id=evento.id)
+    return render(request, "core/rodadas_editar.html", {
+        "rodada": rodada,
+        "duracoes": Rodada.DURACOES
+    })
+
+
+def rodadas_excluir(request, rodada_id):
+    rodada = get_object_or_404(Rodada, id=rodada_id)
+    evento = rodada.evento  # para redirecionar depois
+
+    # Exclui a rodada
+    rodada.delete()
+
+    messages.success(request, "Rodada excluída com sucesso!")
+    return redirect('core:rodadas_list', evento_id=evento.id)
 
 # -----------------------------
 # MESAS
 # -----------------------------
-#============CBV===============
-'''
-class MesasDaReuniaoView(TemplateView):
-    template_name = "core/mesas_da_reuniao.html"
 
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-
-        reuniao_id = self.kwargs["reuniao_id"]
-        reuniao = get_object_or_404(Reuniao, id=reuniao_id)
-
-        mesas = reuniao.mesas.all().order_by("numero")
-        empresas = Empresa.objects.all()
-        
-        # empresas que já reservaram em QUALQUER mesa desta reunião
-        empresas_reservadas = Reserva.objects.filter(
-            mesa__reuniao=reuniao
-        ).values_list("empresa_id", flat=True)
-
-        # empresas já reservadas por mesa
-        for mesa in mesas:
-            mesa.empresas_ids = [r.empresa.id for r in mesa.reservas.all()]
-
-        context.update({
-            "reuniao": reuniao,
-            "mesas": mesas,
-            "empresas": empresas,
-            "empresas_reservadas": empresas_reservadas,
-        })
-
-        return context
-'''
-#============FBV===============
-def mesas_da_reuniao(request, reuniao_id):
-    reuniao = get_object_or_404(Reuniao, id=reuniao_id)
-    mesas = reuniao.mesas.all().order_by("numero")
-    empresas = Empresa.objects.all()
+def mesas_da_rodada(request, rodada_id):
+    rodada = get_object_or_404(Rodada, id=rodada_id)
+    mesas = rodada.mesas.all().order_by("numero")
     
-    # empresas que já reservaram em QUALQUER mesa desta reunião
-    empresas_reservadas = Reserva.objects.filter(
-        mesa__reuniao=reuniao).values_list('empresa_id', flat=True)
-    
-    # empresas já reservadas por mesa
-    for mesa in mesas:
-        mesa.empresas_ids = [r.empresa.id for r in mesa.reservas.all()]
+    return render(request, "core/mesas_da_rodada.html", {
+        "rodada": rodada,
+        "mesas": mesas
+    })
 
-    context = {
-        "reuniao":reuniao,
-        "mesas":mesas,
-        "empresas":empresas,
-        "empresas_reservadas":empresas_reservadas,
-    }
-    return render(request, "core/mesas_da_reuniao.html", context)
 
-def mesas_gerar(request, reuniao_id):
-    reuniao = get_object_or_404(Reuniao, id=reuniao_id)
+def mesas_gerar(request, rodada_id):
+    rodada = get_object_or_404(Rodada, id=rodada_id)
 
     if request.method == "POST":
         qtd = int(request.POST.get("quantidade"))
 
         # Evita duplicação
-        if reuniao.mesas.exists():
-            messages.error(request, "As mesas já foram geradas para esta reunião.")
-            return redirect('core:mesas_da_reuniao', reuniao_id=reuniao.id)
+        if rodada.mesas.exists():
+            messages.error(request, "As mesas já foram geradas para esta rodada.")
+            return redirect('core:mesas_da_rodada', rodada_id=rodada.id)
 
         # Cria mesas numeradas
         for i in range(1, qtd + 1):
-            Mesa.objects.create(reuniao=reuniao, numero=i)
+            Mesa.objects.create(rodada=rodada, numero=i)
 
         messages.success(request, f"{qtd} mesas foram geradas com sucesso!")
-        return redirect('core:mesas_da_reuniao', reuniao_id=reuniao.id)
+        return redirect('core:mesas_da_rodada', rodada_id=rodada.id)
 
-    return redirect('core:reunioes_list', evento_id=reuniao.evento.id)
-
-
+    return redirect('core:rodadas_list', evento_id=rodada.evento.id)
 
 # -----------------------------
-# RESERVAS
+# PAINEL DE RODADAS
 # -----------------------------
-from .models import Reserva
-
-def mesa_reservar(request, mesa_id):
-    mesa = get_object_or_404(Mesa, id=mesa_id)
-    reuniao = mesa.reuniao
-
-    empresa_id = request.GET.get("empresa")
-    empresa = get_object_or_404(Empresa, id=empresa_id)
-
-    # Regra 1: mesa cheia
-    if mesa.reservas.count() >= 2:
-        messages.error(request, "Esta mesa já está com todas as vagas preenchidas.")
-        return redirect('core:mesas_da_reuniao', reuniao_id=reuniao.id)
-
-    # Regra 2: empresa já reservou outra mesa nesta reunião
-    if Reserva.objects.filter(mesa__reuniao=mesa.reuniao, empresa=empresa).exists():
-        messages.error(request, "Esta empresa já possui reserva nesta reunião.")
-        return redirect('core:mesas_da_reuniao', reuniao_id=reuniao.id)
-
-    # Criar reserva
-    Reserva.objects.create(mesa=mesa, empresa=empresa)
-    messages.success(request, "Reserva realizada com sucesso!")
-
-    return redirect('core:mesas_da_reuniao', reuniao_id=reuniao.id)
-
-def reserva_cancelar(request, reserva_id):
-    reserva = get_object_or_404(Reserva, id=reserva_id)
-    reuniao = reserva.mesa.reuniao
-
-    reserva.delete()
-    messages.success(request, "Reserva cancelada com sucesso!")
-
-    return redirect('core:mesas_da_reuniao', reuniao_id=reuniao.id)
-
-
-def reserva_editar(request, reserva_id):
-    reserva = get_object_or_404(Reserva, id=reserva_id)
-    mesa = reserva.mesa
-    reuniao = mesa.reuniao
-    empresas = Empresa.objects.all()
-
-    if request.method == "POST":
-        nova_empresa_id = request.POST.get("empresa")
-        nova_empresa = get_object_or_404(Empresa, id=nova_empresa_id)
-
-        # Regra: empresa já está em outra mesa
-        if Reserva.objects.filter(mesa__reuniao=reuniao, empresa=nova_empresa).exclude(id=reserva.id).exists():
-            messages.error(request, "Esta empresa já está reservada em outra mesa nesta reunião.")
-            return redirect('core:mesas_da_reuniao', reuniao_id=reuniao.id)
-
-        reserva.empresa = nova_empresa
-        reserva.save()
-
-        messages.success(request, "Reserva atualizada com sucesso!")
-        return redirect('core:mesas_da_reuniao', reuniao_id=reuniao.id)
-
-    context = {
-        "reserva": reserva,
-        "mesa": mesa,
-        "reuniao": reuniao,
-        "empresas": empresas,
-    }
-    return render(request, "core/reserva_editar.html", context)
-    
-# -----------------------------
-# PAINEL DE REUNIÕES
-# -----------------------------
-def painel_da_reuniao(request, reuniao_id):
-    reuniao = get_object_or_404(Reuniao, id=reuniao_id)
-    mesas = reuniao.mesas.all()
+def painel_da_rodada(request, rodada_id):
+    rodada = get_object_or_404(Rodada, id=rodada_id)
+    mesas = rodada.mesas.select_related("comprador", "expositor").all()
     empresas = Empresa.objects.all()
 
     total_mesas = mesas.count()
-    total_reservas = Reserva.objects.filter(mesa__reuniao=reuniao).count()
+    total_reservas = Reserva.objects.filter(mesa__rodada=rodada).count()
 
     # Empresas que já reservaram
     empresas_reservadas_ids = Reserva.objects.filter(
-        mesa__reuniao=reuniao
+        mesa__rodada=rodada 
     ).values_list("empresa_id", flat=True)
 
     empresas_sem_reserva = empresas.exclude(id__in=empresas_reservadas_ids)
@@ -529,12 +455,12 @@ def painel_da_reuniao(request, reuniao_id):
     capacidade_total = total_mesas * 2
     ocupacao_percentual = (total_reservas / capacidade_total * 100) if capacidade_total > 0 else 0
 
-    # Mesas com vagas
+    # Mesas com vagas e mesas cheias
     mesas_com_vagas = [m for m in mesas if m.reservas.count() < 2]
     mesas_cheias = [m for m in mesas if m.reservas.count() == 2]
  
     context = {
-        "reuniao": reuniao,
+        "rodada": rodada,
         "mesas": mesas,
         "total_mesas": total_mesas,
         "total_reservas": total_reservas,
@@ -543,7 +469,32 @@ def painel_da_reuniao(request, reuniao_id):
         "mesas_com_vagas": mesas_com_vagas,
         "mesas_cheias": mesas_cheias,
     }
-    return render(request, "core/painel_reuniao.html", context)
+    return render(request, "core/painel_rodada.html", context)
 
+# -----------------------------
+# RELATÓRIO DE AFINIDADES
+# -----------------------------
 
+def mesa_relatorio(request, pk):
+    mesa = get_object_or_404(Mesa, pk=pk)
 
+    comprador = mesa.comprador
+    expositor = mesa.expositor
+
+    interesses_comprador = set(comprador.interesses.all())
+    interesses_expositor = set(expositor.interesses.all())
+
+    afinidades = interesses_comprador.intersection(interesses_expositor)
+    complementares = interesses_comprador.symmetric_difference(interesses_expositor)
+
+    context = {
+        "mesa": mesa,
+        "comprador": comprador,
+        "expositor": expositor,
+        "afinidades": afinidades,
+        "complementares": complementares,
+        "interesses_comprador": interesses_comprador,
+        "interesses_expositor": interesses_expositor,
+    }
+
+    return render(request, "core/mesa_relatorio.html", context)

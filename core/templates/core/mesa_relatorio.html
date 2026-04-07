@@ -1,0 +1,67 @@
+{% extends 'core/base.html' %}
+
+{% block content %}
+<h2 class="mb-4">Relatório de Afinidades</h2>
+
+<div class="card mb-4">
+    <div class="card-header bg-primary text-white">
+        Mesa {{ mesa.id }} — Rodada {{ mesa.rodada.nome }}
+    </div>
+    <div class="card-body">
+        <h4>Comprador</h4>
+        <p><strong>{{ comprador.nome }}</strong></p>
+
+        <h4>Expositor</h4>
+        <p><strong>{{ expositor.nome }}</strong></p>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6">
+        <h4>Interesses do Comprador</h4>
+        <ul class="list-group mb-4">
+            {% for i in interesses_comprador %}
+            <li class="list-group-item">{{ i.categoria.nome }} — {{ i.nome }}</li>
+            {% endfor %}
+        </ul>
+    </div>
+
+    <div class="col-md-6">
+        <h4>Interesses do Expositor</h4>
+        <ul class="list-group mb-4">
+            {% for i in interesses_expositor %}
+            <li class="list-group-item">{{ i.categoria.nome }} — {{ i.nome }}</li>
+            {% endfor %}
+        </ul>
+    </div>
+</div>
+
+<h3 class="mt-4">Afinidades (Interesses em Comum)</h3>
+{% if afinidades %}
+<ul class="list-group mb-4">
+    {% for i in afinidades %}
+    <li class="list-group-item list-group-item-success">
+        {{ i.categoria.nome }} — {{ i.nome }}
+    </li>
+    {% endfor %}
+</ul>
+{% else %}
+<p class="text-muted">Nenhuma afinidade encontrada.</p>
+{% endif %}
+
+<h3 class="mt-4">Interesses Complementares</h3>
+{% if complementares %}
+<ul class="list-group mb-4">
+    {% for i in complementares %}
+    <li class="list-group-item list-group-item-warning">
+        {{ i.categoria.nome }} — {{ i.nome }}
+    </li>
+    {% endfor %}
+</ul>
+{% else %}
+<p class="text-muted">Nenhum interesse complementar.</p>
+{% endif %}
+
+<a href="{% url 'core:mesas_da_rodada' mesa.rodada.id %}" class="btn btn-secondary mt-4">Voltar</a>
+
+{% endblock %}
