@@ -67,7 +67,7 @@ class EmpresaDetailView(DetailView):
     form_class = EmpresaForm
     template_name = 'core/empresa_detail.html'
     context_object_name = 'empresa'
-
+ 
 
 class EmpresaCreateView(CreateView):
     model = Empresa
@@ -79,12 +79,17 @@ class EmpresaCreateView(CreateView):
         context = super().get_context_data(**kwargs)
 
         # Lista de categorias distintas
+        categorias = Categoria.objects.filter(
+            id__in=Interesse.objects.values_list("categoria", flat=True)
+        ).order_by("nome")
+        '''
         categorias = (
             Interesse.objects
             .values_list("categoria", flat=True)
             .distinct()
             .order_by("categoria")
         )
+        '''
 
         # Interesses agrupados por categoria
         interesses_por_categoria = {
@@ -212,13 +217,25 @@ def categoria_delete(request, pk):
 class InteresseListView(ListView):
     model = Interesse
     template_name = "core/interesse_list.html"
-    context_object_name = "interesses"
-    paginate_by = 15  # Exibe 20 por página
-    ordering = ["categoria", "nome"]  # Ordena por categoria e depois por nome
+    context_object_name = "categorias"
+    paginate_by = 5  # Exibe 5 por página
+    
+    def get_queryset(self):
+        qs = Categoria.objects.filter(interesse__isnull=False).distinct().order_by("nome")
+        return qs
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context["categorias"] = Categoria.objects.all()
+        
+        categorias = context["categorias"]
+        
+        # Carrega interesses de cada categoria
+        interesses_por_categoria = {
+            categoria.id: categoria.interesse_set.order_by("nome")
+            for categoria in categorias
+        }
+
+        context["interesses_por_categoria"] = interesses_por_categoria
         return context
 
 

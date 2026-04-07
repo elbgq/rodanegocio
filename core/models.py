@@ -30,7 +30,7 @@ class Categoria(models.Model):
     ordem = models.PositiveIntegerField(default=0)
 
     class Meta:
-        ordering = ["ordem", "nome"]
+        ordering = ["nome", "ordem"]  # Ordena por nome e depois por ordem
 
     def __str__(self):
         return self.nome
