@@ -78,18 +78,10 @@ class EmpresaCreateView(CreateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
 
-        # Lista de categorias distintas
+        # Lista de categorias distintas pelo nome
         categorias = Categoria.objects.filter(
             id__in=Interesse.objects.values_list("categoria", flat=True)
         ).order_by("nome")
-        '''
-        categorias = (
-            Interesse.objects
-            .values_list("categoria", flat=True)
-            .distinct()
-            .order_by("categoria")
-        )
-        '''
 
         # Interesses agrupados por categoria
         interesses_por_categoria = {
@@ -112,13 +104,10 @@ class EmpresaUpdateView(UpdateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
 
-        # Lista de categorias distintas
-        categorias = (
-            Interesse.objects
-            .values_list("categoria", flat=True)
-            .distinct()
-            .order_by("categoria")
-        )
+        # Lista de categorias distintas pelo nome
+        categorias = Categoria.objects.filter(
+            id__in=Interesse.objects.values_list("categoria", flat=True)
+        ).order_by("nome")
 
         # Interesses agrupados por categoria
         interesses_por_categoria = {

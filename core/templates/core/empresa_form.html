@@ -52,7 +52,7 @@
                                 name="interesses"
                                 value="{{ interesse.id }}"
                                 class="form-check-input"
-                                {% if interesse.id in form.initial.interesses %}checked{% endif %}>
+                                {% if interesse in form.instance.interesses.all %}checked{% endif %}
 
                             <label class="form-check-label">
                                 {{ interesse.nome }}
