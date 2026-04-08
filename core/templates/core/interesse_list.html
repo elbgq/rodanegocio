@@ -34,7 +34,15 @@
                 <button class="accordion-button collapsed" type="button"
                         data-bs-toggle="collapse"
                         data-bs-target="#collapse{{ categoria.id }}">
-                    {{ categoria.nome }}
+
+                    <div class="d-flex w-100 align-items-center">
+                        <span>{{ categoria.nome }}</span>
+
+                        <span class="badge bg-primary ms-auto me-3">
+                            {{ interesses_por_categoria|get_item:categoria.id|length }}
+                        </span>
+                    </div>
+
                 </button>
             </h2>
 
