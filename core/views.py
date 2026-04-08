@@ -218,7 +218,7 @@ class InteresseListView(ListView):
     model = Interesse
     template_name = "core/interesse_list.html"
     context_object_name = "categorias"
-    paginate_by = 5  # Exibe 5 por página
+    paginate_by = 10  # Exibe 10 por página
     
     def get_queryset(self):
         qs = Categoria.objects.filter(interesse__isnull=False).distinct().order_by("nome")
