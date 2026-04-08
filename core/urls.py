@@ -12,6 +12,7 @@ urlpatterns = [
     path('empresas/nova/', views.EmpresaCreateView.as_view(), name='empresa_create'),
     path('empresas/<int:pk>/', views.EmpresaDetailView.as_view(), name='empresa_detail'),
     path('empresas/<int:pk>/editar/', views.EmpresaUpdateView.as_view(), name='empresa_update'),
+    path("empresa/<int:pk>/perfil/", views.empresa_perfil, name="empresa_perfil"),
     
     # CATEGORIAS
     path("categorias/", views.categoria_list, name="categoria_list"),

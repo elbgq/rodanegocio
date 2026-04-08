@@ -131,6 +131,25 @@ class EmpresaUpdateView(UpdateView):
         
         return context
 
+def empresa_perfil(request, pk):
+    empresa = get_object_or_404(Empresa, pk=pk)
+
+    # Agrupa os interesses da empresa por categoria
+    categorias = Categoria.objects.all().prefetch_related("interesse_set")
+
+    interesses_por_categoria = []
+    for categoria in categorias:
+        interesses = empresa.interesses.filter(categoria=categoria)
+        if interesses.exists():
+            interesses_por_categoria.append((categoria, interesses))
+
+    context = {
+        "empresa": empresa,
+        "interesses_por_categoria": interesses_por_categoria,
+    }
+
+    return render(request, "core/empresa_perfil.html", context)
+
 # -----------------------------
 # INTERESSES
 # -----------------------------

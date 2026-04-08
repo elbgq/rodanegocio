@@ -67,6 +67,10 @@
             </td>
 
             <td>
+                <a href="{% url 'core:empresa_perfil' empresa.id %}" 
+                    class="btn btn-outline-info btn-sm">
+                    Ver Perfil
+                </a>
                 <a href="{% url 'core:empresa_update' empresa.id %}" 
                    class="btn btn-warning btn-sm">
                     Editar
