@@ -1,6 +1,5 @@
 from django import forms
-from .models import (Rodada, Representante, PerfilComprador,
-                     PerfilExpositor, Empresa, Interesse, Categoria)
+from .models import (Rodada, Representante, Empresa, Interesse, Categoria)
 import re
 
 from django import forms
@@ -27,28 +26,6 @@ class EmpresaForm(forms.ModelForm):
         if site and not site.startswith(("http://", "https://")):
             site = "https://" + site
         return site
-
-class PerfilCompradorForm(forms.ModelForm):
-    class Meta:
-        model = PerfilComprador
-        fields = "__all__"
-        widgets = {
-            "paises_que_trabalha": forms.CheckboxSelectMultiple(),
-            "preco_medio": forms.CheckboxSelectMultiple(),
-            "tipos_produto": forms.CheckboxSelectMultiple(),
-            "regioes_interesse": forms.CheckboxSelectMultiple(),
-        }
-
-class PerfilExpositorForm(forms.ModelForm):
-    class Meta:
-        model = PerfilExpositor
-        fields = "__all__"
-        widgets = {
-            "preco_faixa": forms.CheckboxSelectMultiple(),
-            "tipos_produto": forms.CheckboxSelectMultiple(),
-            "regioes_brasil": forms.CheckboxSelectMultiple(),
-            "perfil_comprador_desejado": forms.CheckboxSelectMultiple(),
-        }
 
 class CategoriaForm(forms.ModelForm):
     class Meta:

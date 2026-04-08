@@ -70,34 +70,6 @@ class Empresa(models.Model):
         return self.nome
 
 # ============================
-# PERFIL DA EMPRESA
-# ============================
-class PerfilComprador(models.Model):
-    empresa = models.OneToOneField(Empresa, on_delete=models.CASCADE)
-
-    rotulos_internacionais = models.IntegerField(null=True, blank=True)
-    paises_que_trabalha = models.ManyToManyField(Interesse, related_name="compradores_paises", blank=True)
-    preco_medio = models.ManyToManyField(Interesse, related_name="compradores_preco", blank=True)
-    tipos_produto = models.ManyToManyField(Interesse, related_name="compradores_tipos", blank=True)
-    regioes_interesse = models.ManyToManyField(Interesse, related_name="compradores_regioes", blank=True)
-
-    def __str__(self):
-        return f"Perfil do Comprador: {self.empresa.nome}"
-
-
-class PerfilExpositor(models.Model):
-    empresa = models.OneToOneField(Empresa, on_delete=models.CASCADE)
-
-    pais_origem = models.ForeignKey(Interesse, on_delete=models.SET_NULL, null=True, related_name="expositores_pais")
-    preco_faixa = models.ManyToManyField(Interesse, related_name="expositores_preco", blank=True)
-    tipos_produto = models.ManyToManyField(Interesse, related_name="expositores_tipos", blank=True)
-    regioes_brasil = models.ManyToManyField(Interesse, related_name="expositores_regioes", blank=True)
-    perfil_comprador_desejado = models.ManyToManyField(Interesse, related_name="expositores_perfil", blank=True)
-
-    def __str__(self):
-        return f"Perfil do Expositor: {self.empresa.nome}"
-    
-# ============================
 # REPRESENTANTE
 # ============================
 class Representante(models.Model):

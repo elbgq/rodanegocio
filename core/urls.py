@@ -12,12 +12,6 @@ urlpatterns = [
     path('empresas/nova/', views.EmpresaCreateView.as_view(), name='empresa_create'),
     path('empresas/<int:pk>/', views.EmpresaDetailView.as_view(), name='empresa_detail'),
     path('empresas/<int:pk>/editar/', views.EmpresaUpdateView.as_view(), name='empresa_update'),
-
-    # MACHING DE PERFIS
-    path("empresa/<int:pk>/perfil-comprador/", views.PerfilCompradorUpdateView.as_view(), 
-         name="perfil_comprador"),
-    path("empresa/<int:pk>/perfil-expositor/", views.PerfilExpositorUpdateView.as_view(), 
-         name="perfil_expositor"),
     
     # CATEGORIAS
     path("categorias/", views.categoria_list, name="categoria_list"),

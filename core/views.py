@@ -5,9 +5,9 @@ from django.views.generic import (
 )
 from django.urls import reverse_lazy
 from .models import (Empresa, Evento, Rodada, Representante, Mesa, Reserva,
-                     PerfilComprador, PerfilExpositor, Interesse, Categoria)
+                     Interesse, Categoria)
 from .forms import (RepresentanteForm, EmpresaForm, CategoriaForm,
-                    PerfilCompradorForm, PerfilExpositorForm, InteresseForm)
+                    InteresseForm)
 from django.views.generic import TemplateView
 from django.core.exceptions import ValidationError
 from datetime import datetime, timedelta, time, date
@@ -129,38 +129,6 @@ class EmpresaUpdateView(UpdateView):
         context["categorias_interesses"] = categorias
         context["interesses_por_categoria"] = interesses_por_categoria
         
-        return context
-
-class PerfilCompradorUpdateView(UpdateView):
-    model = PerfilComprador
-    form_class = PerfilCompradorForm
-    template_name = "core/perfil_form.html"
-    success_url = reverse_lazy("core:empresa_list")
-
-    def get_object(self, queryset=None):
-        empresa = Empresa.objects.get(pk=self.kwargs["pk"])
-        perfil, created = PerfilComprador.objects.get_or_create(empresa=empresa)
-        return perfil
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context["title"] = f"Perfil do Comprador — {self.object.empresa.nome}"
-        return context
-
-class PerfilExpositorUpdateView(UpdateView):
-    model = PerfilExpositor
-    form_class = PerfilExpositorForm
-    template_name = "core/perfil_form.html"
-    success_url = reverse_lazy("core:empresa_list")
-
-    def get_object(self, queryset=None):
-        empresa = Empresa.objects.get(pk=self.kwargs["pk"])
-        perfil, created = PerfilExpositor.objects.get_or_create(empresa=empresa)
-        return perfil
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context["title"] = f"Perfil do Expositor — {self.object.empresa.nome}"
         return context
 
 # -----------------------------
