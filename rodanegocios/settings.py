@@ -29,7 +29,7 @@ ALLOWED_HOSTS = ['rodanegocio-eloibgq.pythonanywhere.com']
 
 
 # Application definition
-NSTALLED_APPS = [
+INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
