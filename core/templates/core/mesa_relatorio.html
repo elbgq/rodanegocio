@@ -5,15 +5,28 @@
 <a href="{% url 'core:mesas_da_rodada' mesa.rodada.id %}" class="btn btn-secondary mb-4">Voltar</a>
 
 <div class="card mb-4">
-    <div class="card-header bg-primary text-white">
-        Mesa {{ mesa.numero }} — Rodada {{ mesa.rodada.nome }}
-    </div>
-    <div class="card-body">
-        <h4>Comprador</h4>
-        <p><strong>{{ comprador.nome }}</strong></p>
+    <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+        <span>
+            Mesa {{ mesa.numero }} — Rodada {{ mesa.rodada.nome }}
+        </span>
 
-        <h4>Expositor</h4>
-        <p><strong>{{ expositor.nome }}</strong></p>
+    </div>
+
+    <div class="card-body d-flex justify-content-between align-items-center">  
+        <div>
+            <h4>Comprador</h4>
+            <p><strong>{{ comprador.nome }}</strong></p>
+
+            <h4>Expositor</h4>
+            <p><strong>{{ expositor.nome }}</strong></p>
+        </div>
+
+        <div class="text-center">
+            <span class="badge bg-success fs-4 px-3 py-2">
+                Compatibilidade<br><br>{{ compatibilidade }}%
+            </span>
+        </div>
+
     </div>
 </div>
 

@@ -498,6 +498,14 @@ def mesa_relatorio(request, pk):
     afinidades = interesses_comprador.intersection(interesses_expositor)
     complementares = interesses_comprador.symmetric_difference(interesses_expositor)
 
+    # --- Cálculo da compatibilidade ---
+    total_unico = interesses_comprador.union(interesses_expositor)
+    if total_unico:
+        compatibilidade = round((len(afinidades) / len(total_unico)) * 100)
+    else:
+        compatibilidade = 0
+    # -----------------------------------
+    
     context = {
         "mesa": mesa,
         "comprador": comprador,
@@ -506,6 +514,7 @@ def mesa_relatorio(request, pk):
         "complementares": complementares,
         "interesses_comprador": interesses_comprador,
         "interesses_expositor": interesses_expositor,
+        "compatibilidade": compatibilidade,
     }
 
     return render(request, "core/mesa_relatorio.html", context)

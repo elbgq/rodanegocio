@@ -51,7 +51,7 @@ urlpatterns = [
     path('rodada/<int:rodada_id>/mesas/', views.mesas_da_rodada, name='mesas_da_rodada'),
     path('rodada/<int:rodada_id>/mesas/gerar/', views.mesas_gerar, name='mesas_gerar'),
     path("mesas/<int:pk>/relatorio/", views.mesa_relatorio, name="mesa_relatorio"),
-    
+     
     # Painel
     path('rodada/<int:rodada_id>/painel/', views.painel_da_rodada, name='painel_rodada'),
     
