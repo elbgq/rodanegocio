@@ -2,10 +2,11 @@
 
 {% block content %}
 <h2 class="mb-4">Relatório de Afinidades</h2>
+<a href="{% url 'core:mesas_da_rodada' mesa.rodada.id %}" class="btn btn-secondary mb-4">Voltar</a>
 
 <div class="card mb-4">
     <div class="card-header bg-primary text-white">
-        Mesa {{ mesa.id }} — Rodada {{ mesa.rodada.nome }}
+        Mesa {{ mesa.numero }} — Rodada {{ mesa.rodada.nome }}
     </div>
     <div class="card-body">
         <h4>Comprador</h4>
@@ -61,7 +62,5 @@
 {% else %}
 <p class="text-muted">Nenhum interesse complementar.</p>
 {% endif %}
-
-<a href="{% url 'core:mesas_da_rodada' mesa.rodada.id %}" class="btn btn-secondary mt-4">Voltar</a>
 
 {% endblock %}
