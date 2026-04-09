@@ -29,3 +29,18 @@ nav a {
     background-repeat: no-repeat;
     min-height: 80vh;
 }
+
+span.badge.bg-completa {
+    background-color: #28a745 !important; /* verde */
+    color: white !important;
+}
+
+span.badge.bg-vaga {
+    background-color: #ffc107 !important; /* amarelo */
+    color: black !important;
+}
+
+span.badge.bg-vazia {
+    background-color: #6c757d !important; /* cinza */
+    color: white !important;
+}

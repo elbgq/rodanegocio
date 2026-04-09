@@ -101,7 +101,7 @@ class Rodada(models.Model):
         related_name="rodadas"   
     )
     def __str__(self):
-        return f"{self.nome} - {self.hora_inicio:%H:%M} - {self.hora_fim:%H:%M}"
+        return f"{self.nome} - {self.inicio_ro:%H:%M} - {self.fim_ro:%H:%M}"
 
 
 # ============================
@@ -129,36 +129,12 @@ class Mesa(models.Model):
     )
     @property
     def status(self):
-        qtd = self.reservas.count()
-        if qtd == 2:
+        if self.comprador and self.expositor:
             return "completa"
-        elif qtd == 1:
+        elif self.comprador or self.expositor:
             return "vaga"
         return "vazia"
     
     def __str__(self):
-        return f"Mesa {self.numero} - Rodada {self.rodada.numero}"
-    
-'''
-    class Meta:
-        unique_together = ("numero", "rodada")  # evita duplicação de mesas na mesma rodada
+        return f"Mesa {self.numero}"
 
-    def __str__(self):
-        return f"Mesa {self.numero} - {self.rodada.nome}"
-'''
-# ============================
-# RESERVA
-# ============================
-class Reserva(models.Model):
-    mesa = models.ForeignKey(Mesa, on_delete=models.CASCADE, related_name="reservas")
-    empresa = models.ForeignKey(Empresa, on_delete=models.CASCADE)
-    horario = models.TimeField(null=True, blank=True)  # opcional, se quiser registrar
-
-    
-    class Meta:
-        unique_together = ('mesa', 'empresa')
-    
-    def __str__(self):
-        return f"{self.empresa.nome} na Mesa {self.mesa.numero}"
-
-    

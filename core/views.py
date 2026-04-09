@@ -4,7 +4,7 @@ from django.views.generic import (
     ListView, DetailView, CreateView, UpdateView, TemplateView, DeleteView
 )
 from django.urls import reverse_lazy
-from .models import (Empresa, Evento, Rodada, Representante, Mesa, Reserva,
+from .models import (Empresa, Evento, Rodada, Representante, Mesa,
                      Interesse, Categoria)
 from .forms import (RepresentanteForm, EmpresaForm, CategoriaForm,
                     InteresseForm)
@@ -434,24 +434,41 @@ def painel_da_rodada(request, rodada_id):
     mesas = rodada.mesas.select_related("comprador", "expositor").all()
     empresas = Empresa.objects.all()
 
+    # Total de mesas
     total_mesas = mesas.count()
-    total_reservas = Reserva.objects.filter(mesa__rodada=rodada).count()
 
-    # Empresas que já reservaram
-    empresas_reservadas_ids = Reserva.objects.filter(
-        mesa__rodada=rodada 
-    ).values_list("empresa_id", flat=True)
+    # Total de reservas = comprador + expositor
+    total_reservas = sum([
+        (1 if m.comprador else 0) +
+        (1 if m.expositor else 0)
+        for m in mesas
+    ])
 
-    empresas_sem_reserva = empresas.exclude(id__in=empresas_reservadas_ids)
+    # Empresas que já estão em alguma mesa
+    empresas_ocupadas_ids = set(
+        mesas.values_list("comprador_id", flat=True)
+    ) | set(
+        mesas.values_list("expositor_id", flat=True)
+    )
 
-    # Ocupação
+    # Remove None
+    empresas_ocupadas_ids.discard(None)
+
+    # Empresas sem reserva
+    empresas_sem_reserva = empresas.exclude(id__in=empresas_ocupadas_ids)
+
+    # Capacidade total = 2 por mesa
     capacidade_total = total_mesas * 2
-    ocupacao_percentual = (total_reservas / capacidade_total * 100) if capacidade_total > 0 else 0
+
+    ocupacao_percentual = (
+        (total_reservas / capacidade_total) * 100
+        if capacidade_total > 0 else 0
+    )
 
     # Mesas com vagas e mesas cheias
-    mesas_com_vagas = [m for m in mesas if m.reservas.count() < 2]
-    mesas_cheias = [m for m in mesas if m.reservas.count() == 2]
- 
+    mesas_com_vagas = [m for m in mesas if (m.comprador and m.expositor) is False]
+    mesas_cheias = [m for m in mesas if m.comprador and m.expositor]
+
     context = {
         "rodada": rodada,
         "mesas": mesas,
@@ -462,6 +479,7 @@ def painel_da_rodada(request, rodada_id):
         "mesas_com_vagas": mesas_com_vagas,
         "mesas_cheias": mesas_cheias,
     }
+
     return render(request, "core/painel_rodada.html", context)
 
 # -----------------------------
