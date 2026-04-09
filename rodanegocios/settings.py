@@ -25,12 +25,11 @@ SECRET_KEY = 'django-insecure-!nq0pj3jwa=eq0lv7dh5_s@%s94sj52*c9gak_%cyzi42mpzyc
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['127.0.0.1', 'rodadas-eloibgq.pythonanywhere.com']
+ALLOWED_HOSTS = ['rodanegocio-eloibgq.pythonanywhere.com', 'localhost']
 
 
 # Application definition
-
-INSTALLED_APPS = [
+NSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
