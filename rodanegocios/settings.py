@@ -124,7 +124,7 @@ USE_TZ = True
 STATIC_URL = '/static/'
 
 # Local onde o collectstatic vai reunir os arquivos para produção
-STATICFILES_DIRS = [BASE_DIR / 'core' / 'static',]
+# STATICFILES_DIRS = [BASE_DIR / 'core' / 'static',]
 
 # Pastas adicionais onde o Django procura estáticos (ex: raiz do projeto)
-STATIC_ROOT = BASE_DIR / 'staticfiles'
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
