@@ -31,7 +31,7 @@
                 {% if empresa.representantes.exists %}
                     <ul class="mb-0">
                         {% for rep in empresa.representantes.all %}
-                            <li>{{ rep.nome }} — {{ rep.email }} - {{ rep.telefone }}</li>
+                            <li>{{ rep.nome }} — {{ rep.cargo }} - {{ rep.email }} - {{ rep.telefone }}</li>
                         {% endfor %}
                     </ul>
                 {% else %}
@@ -86,4 +86,6 @@
 </table>
 {% include "core/partials/pagination.html" %}
 <a href="{% url 'home' %}" class="btn btn-secondary">Voltar</a>
+
+
 {% endblock %}

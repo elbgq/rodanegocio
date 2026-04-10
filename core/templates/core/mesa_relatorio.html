@@ -17,8 +17,8 @@
             <h4>Comprador</h4>
             <p><strong>{{ comprador.nome }}</strong></p>
 
-            <h4>Expositor</h4>
-            <p><strong>{{ expositor.nome }}</strong></p>
+            <h4>Vendedor</h4>
+            <p><strong>{{ vendedor.nome }}</strong></p>
         </div>
 
         <div class="text-center">
@@ -41,9 +41,9 @@
     </div>
 
     <div class="col-md-6">
-        <h4>Interesses do Expositor</h4>
+        <h4>Interesses do Vendedor</h4>
         <ul class="list-group mb-4">
-            {% for i in interesses_expositor %}
+            {% for i in interesses_vendedor %}
             <li class="list-group-item">{{ i.categoria.nome }} — {{ i.nome }}</li>
             {% endfor %}
         </ul>

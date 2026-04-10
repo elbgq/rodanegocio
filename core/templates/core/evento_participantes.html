@@ -1,0 +1,148 @@
+{% extends "core/base.html" %}
+{% load static %}
+{% block content %}
+
+<h2 class="mb-4">Gerenciar Participantes — {{ evento.nome }}</h2>
+<p><strong>Data:</strong> {{ evento.data }}</p>
+<p><strong>Local:</strong> {{ evento.local }}</p>
+<p><strong>Descrição:</strong> {{ evento.descricao }}</p>
+
+<!-- Estatísticas -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <h6>Total de Empresas</h6>
+                <span class="badge bg-secondary fs-4">{{ total_empresas }}</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <h6>Inscritas</h6>
+                <span class="badge bg-primary fs-4" id="total-inscritas">{{ total_inscritas }}</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <h6>Compradores</h6>
+                <span class="badge bg-success fs-4" id="compradores-inscritos">{{ compradores_inscritos }}</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <h6>Vendedores</h6>
+                <span class="badge bg-warning fs-4" id="vendedores-inscritos">{{ vendedores_inscritos }}</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Barra de progresso -->
+<div class="mb-4">
+    <label class="form-label">Participação Geral</label>
+    <div class="progress-bar bg-info" id="barra-progresso"
+        role="progressbar"
+        style="width: {{ percentual }}%;">
+        {{ percentual }}%
+    </div>
+</div>
+
+<!-- Busca -->
+<input type="text" id="busca" class="form-control mb-3" placeholder="Buscar empresa...">
+
+<form method="post">
+    {% csrf_token %}
+
+    <!-- Botões -->
+    <div class="mb-3">
+        <button type="button" class="btn btn-sm btn-outline-primary" onclick="selecionarTodos()">Selecionar todos</button>
+        <button type="button" class="btn btn-sm btn-outline-danger" onclick="limparTodos()">Limpar seleção</button>
+    </div>
+
+    <!-- Lista -->
+    <ul class="list-group mb-4" id="lista-empresas">
+        {% for empresa in empresas %}
+        <li class="list-group-item d-flex justify-content-between align-items-center">
+            <label>
+                <input type="checkbox"
+                       name="empresas"
+                       value="{{ empresa.id }}"
+                       class="chk-empresa me-2"
+                       data-modalidade="{{ empresa.modalidade }}"
+                       {% if empresa.id in inscritas %}checked{% endif %}>
+                {{ empresa.nome }}
+            </label>
+
+            <span class="badge bg-light text-dark">{{ empresa.modalidade }}</span>
+        </li>
+        {% endfor %}
+    </ul>
+
+    <button class="btn btn-primary">Salvar Participantes</button>
+    <a href="{% url 'core:evento_detail' evento.id %}" class="btn btn-secondary">Voltar</a>
+</form>
+
+<!-- Scripts -->
+<script>
+function selecionarTodos() {
+    document.querySelectorAll(".chk-empresa").forEach(c => c.checked = true);
+}
+
+function limparTodos() {
+    document.querySelectorAll(".chk-empresa").forEach(c => c.checked = false);
+}
+
+document.getElementById("busca").addEventListener("keyup", function() {
+    let termo = this.value.toLowerCase();
+    document.querySelectorAll("#lista-empresas li").forEach(li => {
+        let nome = li.innerText.toLowerCase();
+        li.style.display = nome.includes(termo) ? "" : "none";
+    });
+});
+</script>
+<script>
+function atualizarContadores() {
+    let total = document.querySelectorAll(".chk-empresa").length;
+    let marcadas = document.querySelectorAll(".chk-empresa:checked");
+    
+    let totalInscritas = marcadas.length;
+    let compradores = 0;
+    let vendedores = 0;
+
+    marcadas.forEach(chk => {
+        if (chk.dataset.modalidade === "COMPRADOR") compradores++;
+        if (chk.dataset.modalidade === "VENDEDOR") vendedores++;
+    });
+
+    // Atualiza os cards
+    document.getElementById("total-inscritas").innerText = totalInscritas;
+    document.getElementById("compradores-inscritos").innerText = compradores;
+    document.getElementById("vendedores-inscritos").innerText = vendedores;
+
+    // Atualiza barra de progresso
+    let percentual = total > 0 ? Math.round((totalInscritas / total) * 100) : 0;
+    let barra = document.getElementById("barra-progresso");
+
+    barra.style.width = percentual + "%";
+    barra.innerText = percentual + "%";
+}
+
+// Atualiza sempre que marcar/desmarcar
+document.querySelectorAll(".chk-empresa").forEach(chk => {
+    chk.addEventListener("change", atualizarContadores);
+});
+
+// Atualiza ao carregar a página
+atualizarContadores();
+</script>
+
+{% endblock %}

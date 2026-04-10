@@ -5,9 +5,9 @@ from django.views.generic import (
 )
 from django.urls import reverse_lazy
 from .models import (Empresa, Evento, Rodada, Representante, Mesa,
-                     Interesse, Categoria)
+                     Interesse, Categoria, EmpresaEvento, Endereco)
 from .forms import (RepresentanteForm, EmpresaForm, CategoriaForm,
-                    InteresseForm)
+                    InteresseForm, EnderecoForm)
 from django.views.generic import TemplateView
 from django.core.exceptions import ValidationError
 from datetime import datetime, timedelta, time, date
@@ -68,7 +68,7 @@ class EmpresaDetailView(DetailView):
     template_name = 'core/empresa_detail.html'
     context_object_name = 'empresa'
  
-
+# ==============================
 class EmpresaCreateView(CreateView):
     model = Empresa
     form_class = EmpresaForm
@@ -77,6 +77,10 @@ class EmpresaCreateView(CreateView):
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+
+        # Formulário de endereço
+        if "form_endereco" not in context:
+            context["form_endereco"] = EnderecoForm()
 
         # Lista de categorias distintas pelo nome
         categorias = Categoria.objects.filter(
@@ -93,8 +97,24 @@ class EmpresaCreateView(CreateView):
         context["interesses_por_categoria"] = interesses_por_categoria
 
         return context
+    
+    def form_valid(self, form):
+        form_endereco = EnderecoForm(self.request.POST)
 
+        if form_endereco.is_valid():
+            endereco = form_endereco.save()
+            empresa = form.save(commit=False)
+            empresa.endereco = endereco
+            empresa.save()
+            form.save_m2m()
+            return super().form_valid(form)
 
+        # Se endereço for inválido, re-renderiza com erros
+        return self.render_to_response(
+            self.get_context_data(form=form, form_endereco=form_endereco)
+        )
+        
+# ==============================
 class EmpresaUpdateView(UpdateView):
     model = Empresa
     form_class = EmpresaForm
@@ -103,6 +123,12 @@ class EmpresaUpdateView(UpdateView):
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+
+        empresa = self.object
+        endereco = empresa.endereco or Endereco()
+
+        if "form_endereco" not in context:
+            context["form_endereco"] = EnderecoForm(instance=endereco)
 
         # Lista de categorias distintas pelo nome
         categorias = Categoria.objects.filter(
@@ -119,7 +145,24 @@ class EmpresaUpdateView(UpdateView):
         context["interesses_por_categoria"] = interesses_por_categoria
         
         return context
+    def form_valid(self, form):
+        empresa = form.save(commit=False)
+        endereco = empresa.endereco or Endereco()
 
+        form_endereco = EnderecoForm(self.request.POST, instance=endereco)
+
+        if form_endereco.is_valid():
+            endereco = form_endereco.save()
+            empresa.endereco = endereco
+            empresa.save()
+            form.save_m2m()
+            return super().form_valid(form)
+
+        return self.render_to_response(
+            self.get_context_data(form=form, form_endereco=form_endereco)
+        )
+
+# =============================
 def empresa_perfil(request, pk):
     empresa = get_object_or_404(Empresa, pk=pk)
 
@@ -308,6 +351,64 @@ class EventoDeleteView(DeleteView):
     template_name = 'core/evento_confirm_delete.html'
     success_url = reverse_lazy('core:evento_list')
 
+# -------------------------------
+# EMPRESA PARTICIPANTE DE EVENTO
+# -------------------------------
+def evento_participantes(request, evento_id):
+    evento = get_object_or_404(Evento, id=evento_id)
+    empresas = Empresa.objects.all()
+
+    # Empresas já inscritas
+    inscritas = EmpresaEvento.objects.filter(
+        evento=evento,
+        participa=True
+    ).values_list("empresa_id", flat=True)
+
+    total_inscritas = len(inscritas)
+    total_empresas = empresas.count()
+
+    compradores_inscritos = Empresa.objects.filter(
+        id__in=inscritas,
+        modalidade="COMPRADOR"
+    ).count()
+
+    vendedores_inscritos = Empresa.objects.filter(
+        id__in=inscritas,
+        modalidade="VENDEDOR"
+    ).count()
+
+    percentual = round((total_inscritas / total_empresas) * 100) if total_empresas > 0 else 0
+
+    if request.method == "POST":
+        selecionadas = request.POST.getlist("empresas")
+
+        # Limpa participações anteriores
+        EmpresaEvento.objects.filter(evento=evento).delete()
+
+        # Cria novas participações
+        for empresa_id in selecionadas:
+            EmpresaEvento.objects.create(
+                empresa_id=empresa_id,
+                evento=evento,
+                participa=True
+            )
+
+        messages.success(request, "Participantes atualizados com sucesso.")
+        return redirect("core:evento_detail", evento.id)
+
+
+    context = {
+        "evento": evento,
+        "empresas": empresas,
+        "inscritas": inscritas,
+        "total_inscritas": total_inscritas,
+        "total_empresas": total_empresas,
+        "compradores_inscritos": compradores_inscritos,
+        "vendedores_inscritos": vendedores_inscritos,
+        "percentual": percentual,
+    }
+
+    return render(request, "core/evento_participantes.html", context)
 
 # -----------------------------
 # RODADAS
@@ -328,35 +429,134 @@ def rodadas_list(request, evento_id):
 def rodadas_gerar(request, evento_id):
     evento = get_object_or_404(Evento, id=evento_id)
 
-    if request.method == "POST":
-        qtd_mesas = int(request.POST["qtd_mesas"])
-        duracao = int(request.POST["duracao"])
-        inicio_rodadas = request.POST["inicio_rodadas"]
-        intervalo = int(request.POST["intervalo"])
-        pausa_cada = int(request.POST["pausa_cada"])
-        pausa_duracao = int(request.POST["pausa_duracao"])
-
-        rodadas = gerar_todas_as_rodadas(
-            evento,
-            qtd_mesas,
-            duracao,
-            inicio_rodadas,
-            intervalo,
-            pausa_cada,
-            pausa_duracao
-        )
-
-
-        return render(request, "core/rodadas_geradas.html", {
+    # GET → mostra o formulário
+    if request.method != "POST":
+        return render(request, "core/rodadas_gerar.html", {
             "evento": evento,
-            "rodadas": rodadas
+            "duracoes": Rodada.DURACOES
         })
+    
+    # POST → valida participantes e redireciona para confirmação
+    qtd_mesas = int(request.POST["qtd_mesas"])
+    duracao = int(request.POST["duracao"])
+    inicio_rodadas = request.POST["inicio_rodadas"]
+    intervalo = int(request.POST["intervalo"])
+    pausa_cada = int(request.POST["pausa_cada"])
+    pausa_duracao = int(request.POST["pausa_duracao"])
 
-    return render(request, "core/rodadas_gerar.html", {
+    # Guarda os dados do formulário na sessão
+    request.session["rodadas_params"] = {
+        "qtd_mesas": qtd_mesas,
+        "duracao": duracao,
+        "inicio_rodadas": inicio_rodadas,
+        "intervalo": intervalo,
+        "pausa_cada": pausa_cada,
+        "pausa_duracao": pausa_duracao,
+    }
+
+    # ============================
+    # VERIFICAÇÃO DE PARTICIPANTES
+    # ============================
+    compradores = Empresa.objects.filter(
+        modalidade="COMPRADOR",
+        empresaevento__evento=evento,
+        empresaevento__participa=True
+    )
+
+    vendedores = Empresa.objects.filter(
+        modalidade="VENDEDOR",
+        empresaevento__evento=evento,
+        empresaevento__participa=True
+    )
+
+    if compradores.count() == 0 or vendedores.count() == 0:
+        messages.error(
+            request,
+            "Não é possível gerar rodadas: verifique se há compradores e vendedores inscritos no evento."
+        )
+        return redirect("core:evento_participantes", evento_id)
+
+    # Opcional: alerta se houver empresas cadastradas mas não inscritas
+    total_empresas = Empresa.objects.count()
+    total_inscritas = compradores.count() + vendedores.count()
+
+    if total_inscritas < total_empresas:
+        messages.warning(
+            request,
+            "Existem empresas cadastradas que não estão inscritas neste evento. "
+            "Confirme se isso está correto antes de gerar as rodadas."
+        )
+        return redirect("core:evento_participantes", evento_id)
+
+    # ============================
+    # SE TUDO OK → GERA RODADAS
+    # ============================
+    return redirect("core:rodadas_confirmar", evento_id)
+
+# ========================================================
+def rodadas_confirmar(request, evento_id):
+    evento = get_object_or_404(Evento, id=evento_id)
+
+    # Recupera parâmetros salvos na sessão
+    params = request.session.get("rodadas_params")
+    if not params:
+        messages.error(request, "Nenhum parâmetro encontrado. Preencha o formulário novamente.")
+        return redirect("core:rodadas_gerar", evento_id)
+
+    compradores = Empresa.objects.filter(
+        modalidade="COMPRADOR",
+        empresaevento__evento=evento,
+        empresaevento__participa=True
+    )
+
+    vendedores = Empresa.objects.filter(
+        modalidade="VENDEDOR",
+        empresaevento__evento=evento,
+        empresaevento__participa=True
+    )
+
+    inscritas_ids = list(compradores.values_list("id", flat=True)) + \
+                    list(vendedores.values_list("id", flat=True))
+
+    nao_inscritas = Empresa.objects.exclude(id__in=inscritas_ids)
+
+    context = {
         "evento": evento,
-        "duracoes": Rodada.DURACOES
+        "compradores": compradores,
+        "vendedores": vendedores,
+        "nao_inscritas": nao_inscritas,
+        "params": params,
+    }
+
+    return render(request, "core/rodadas_confirmar.html", context)
+
+# ========================================================
+def rodadas_processar(request, evento_id):
+    evento = get_object_or_404(Evento, id=evento_id)
+
+    params = request.session.get("rodadas_params")
+    if not params:
+        messages.error(request, "Nenhum parâmetro encontrado. Preencha o formulário novamente.")
+        return redirect("core:rodadas_gerar", evento_id)
+
+    rodadas = gerar_todas_as_rodadas(
+        evento,
+        params["qtd_mesas"],
+        params["duracao"],
+        params["inicio_rodadas"],
+        params["intervalo"],
+        params["pausa_cada"],
+        params["pausa_duracao"]
+    )
+
+    # Limpa sessão
+    del request.session["rodadas_params"]
+
+    return render(request, "core/rodadas_geradas.html", {
+        "evento": evento,
+        "rodadas": rodadas
     })
-     
+    
 # ========================================================
 def rodadas_do_evento(request, evento_id):
     evento = get_object_or_404(Evento, id=evento_id)
@@ -405,7 +605,7 @@ def mesas_da_rodada(request, rodada_id):
         "mesas": mesas
     })
 
-
+ 
 def mesas_gerar(request, rodada_id):
     rodada = get_object_or_404(Rodada, id=rodada_id)
 
@@ -431,16 +631,16 @@ def mesas_gerar(request, rodada_id):
 # -----------------------------
 def painel_da_rodada(request, rodada_id):
     rodada = get_object_or_404(Rodada, id=rodada_id)
-    mesas = rodada.mesas.select_related("comprador", "expositor").all()
-    empresas = Empresa.objects.all()
+    mesas = rodada.mesas.select_related("comprador", "vendedor").all()
+    empresas = Empresa.objects.filter(eventos_participantes=rodada.evento)
 
     # Total de mesas
     total_mesas = mesas.count()
 
-    # Total de reservas = comprador + expositor
+    # Total de reservas = comprador + vendedor
     total_reservas = sum([
         (1 if m.comprador else 0) +
-        (1 if m.expositor else 0)
+        (1 if m.vendedor else 0)
         for m in mesas
     ])
 
@@ -448,9 +648,9 @@ def painel_da_rodada(request, rodada_id):
     empresas_ocupadas_ids = set(
         mesas.values_list("comprador_id", flat=True)
     ) | set(
-        mesas.values_list("expositor_id", flat=True)
+        mesas.values_list("vendedor_id", flat=True)
     )
-
+ 
     # Remove None
     empresas_ocupadas_ids.discard(None)
 
@@ -466,8 +666,8 @@ def painel_da_rodada(request, rodada_id):
     )
 
     # Mesas com vagas e mesas cheias
-    mesas_com_vagas = [m for m in mesas if (m.comprador and m.expositor) is False]
-    mesas_cheias = [m for m in mesas if m.comprador and m.expositor]
+    mesas_com_vagas = [m for m in mesas if (m.comprador and m.vendedor) is False]
+    mesas_cheias = [m for m in mesas if m.comprador and m.vendedor]
 
     context = {
         "rodada": rodada,
@@ -490,16 +690,16 @@ def mesa_relatorio(request, pk):
     mesa = get_object_or_404(Mesa, pk=pk)
 
     comprador = mesa.comprador
-    expositor = mesa.expositor
+    vendedor = mesa.vendedor
 
     interesses_comprador = set(comprador.interesses.all())
-    interesses_expositor = set(expositor.interesses.all())
+    interesses_vendedor = set(vendedor.interesses.all())
 
-    afinidades = interesses_comprador.intersection(interesses_expositor)
-    complementares = interesses_comprador.symmetric_difference(interesses_expositor)
+    afinidades = interesses_comprador.intersection(interesses_vendedor)
+    complementares = interesses_comprador.symmetric_difference(interesses_vendedor)
 
     # --- Cálculo da compatibilidade ---
-    total_unico = interesses_comprador.union(interesses_expositor)
+    total_unico = interesses_comprador.union(interesses_vendedor)
     if total_unico:
         compatibilidade = round((len(afinidades) / len(total_unico)) * 100)
     else:
@@ -509,11 +709,11 @@ def mesa_relatorio(request, pk):
     context = {
         "mesa": mesa,
         "comprador": comprador,
-        "expositor": expositor,
+        "vendedor": vendedor,
         "afinidades": afinidades,
         "complementares": complementares,
         "interesses_comprador": interesses_comprador,
-        "interesses_expositor": interesses_expositor,
+        "interesses_vendedor": interesses_vendedor,
         "compatibilidade": compatibilidade,
     }
 

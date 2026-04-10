@@ -27,7 +27,7 @@
         <tr>
             <th>Nº Mesa</th>
             <th>Comprador</th>
-            <th>Expositor</th>
+            <th>Vendedor</th>
             <th style="width: 150px;">Ações</th>
         </tr>
     </thead>
@@ -37,7 +37,7 @@
         <tr>
             <td>{{ mesa.numero }}</td>
             <td>{{ mesa.comprador.nome }}</td>
-            <td>{{ mesa.expositor.nome }}</td>
+            <td>{{ mesa.vendedor.nome }}</td>
             <td>
                 <a href="{% url 'core:mesa_relatorio' mesa.id %}"
                    class="btn btn-sm btn-info">

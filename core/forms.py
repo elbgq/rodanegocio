@@ -1,5 +1,5 @@
 from django import forms
-from .models import (Rodada, Representante, Empresa, Interesse, Categoria)
+from .models import (Rodada, Representante, Empresa, Interesse, Categoria, Endereco)
 import re
 
 from django import forms
@@ -27,6 +27,21 @@ class EmpresaForm(forms.ModelForm):
             site = "https://" + site
         return site
 
+class EnderecoForm(forms.ModelForm):
+    class Meta:
+        model = Endereco
+        fields = ["rua", "numero", "complemento", "bairro", "cidade", "estado", "cep", "pais"]
+        widgets = {
+            "rua": forms.TextInput(attrs={"class": "form-control"}),
+            "numero": forms.TextInput(attrs={"class": "form-control"}),
+            "complemento": forms.TextInput(attrs={"class": "form-control"}),
+            "bairro": forms.TextInput(attrs={"class": "form-control"}),
+            "cidade": forms.TextInput(attrs={"class": "form-control"}),
+            "estado": forms.TextInput(attrs={"class": "form-control"}),
+            "cep": forms.TextInput(attrs={"class": "form-control"}),
+            "pais": forms.TextInput(attrs={"class": "form-control"}),
+        }
+ 
 class CategoriaForm(forms.ModelForm):
     class Meta:
         model = Categoria
@@ -67,7 +82,7 @@ class RodadaForm(forms.ModelForm):
 class RepresentanteForm(forms.ModelForm):
     class Meta:
         model = Representante
-        fields = ["nome", "email", "telefone"]
+        fields = ["nome", "cargo", "email", "telefone"]
         
     def clean_email(self):
         email = self.cleaned_data.get('email')

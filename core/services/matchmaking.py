@@ -9,11 +9,11 @@ def calcular_afinidade(a, b):
     return len(interesses_a.intersection(interesses_b))
 
 
-def gerar_pares_para_rodada(compradores, expositores_disponiveis, qtd_mesas):
+def gerar_pares_para_rodada(compradores, vendedores_disponiveis, qtd_mesas):
     matriz = []
 
     for c in compradores:
-        for e in expositores_disponiveis:
+        for e in vendedores_disponiveis:
             score = calcular_afinidade(c, e)
             matriz.append((c, e, score))
 
@@ -21,13 +21,13 @@ def gerar_pares_para_rodada(compradores, expositores_disponiveis, qtd_mesas):
 
     pares = []
     usados_compradores = set()
-    usados_expositores = set()
+    usados_vendedores = set()
 
     for c, e, score in matriz:
         if len(pares) >= qtd_mesas:
             break
-
-        if e.id in usados_expositores:
+ 
+        if e.id in usados_vendedores:
             continue
 
         # comprador pode repetir entre rodadas
@@ -36,9 +36,9 @@ def gerar_pares_para_rodada(compradores, expositores_disponiveis, qtd_mesas):
 
         pares.append((c, e))
         usados_compradores.add(c.id)
-        usados_expositores.add(e.id)
+        usados_vendedores.add(e.id)
 
-    return pares, usados_expositores
+    return pares, usados_vendedores
 
 
 def gerar_todas_as_rodadas(
@@ -51,10 +51,19 @@ def gerar_todas_as_rodadas(
     pausa_duracao
 ):
 
-    compradores = list(Empresa.objects.filter(modalidade="COMPRADOR"))
-    expositores = list(Empresa.objects.filter(modalidade="EXPOSITOR"))
+    compradores = list(Empresa.objects.filter(
+        modalidade="COMPRADOR",
+        empresaevento__evento=evento,
+        empresaevento__participa=True
+    ))
 
-    expositores_restantes = set(e.id for e in expositores)
+    vendedores = list(Empresa.objects.filter(
+        modalidade="VENDEDOR",
+        empresaevento__evento=evento,
+        empresaevento__participa=True
+    ))
+
+    vendedores_restantes = set(e.id for e in vendedores)
     rodadas_criadas = []
 
     numero_rodada = 1
@@ -63,14 +72,14 @@ def gerar_todas_as_rodadas(
     horario_atual = datetime.combine(evento.data, datetime.strptime(inicio_rodadas, "%H:%M").time())
 
 
-    while expositores_restantes:
-        expositores_disponiveis = [
-            e for e in expositores if e.id in expositores_restantes
+    while vendedores_restantes:
+        vendedores_disponiveis = [
+            e for e in vendedores if e.id in vendedores_restantes
         ]
 
-        pares, usados_expositores = gerar_pares_para_rodada(
+        pares, usados_vendedores = gerar_pares_para_rodada(
             compradores,
-            expositores_disponiveis,
+            vendedores_disponiveis,
             qtd_mesas
         )
 
@@ -90,12 +99,12 @@ def gerar_todas_as_rodadas(
             fim_ro=fim
         )
 
-        for i, (comprador, expositor) in enumerate(pares, start=1):
+        for i, (comprador, vendedor) in enumerate(pares, start=1):
             Mesa.objects.create(
                 rodada=rodada,
                 numero=i,
                 comprador=comprador,
-                expositor=expositor
+                vendedor=vendedor
             )
 
         rodadas_criadas.append(rodada)
@@ -108,6 +117,8 @@ def gerar_todas_as_rodadas(
         if pausa_cada > 0 and (numero_rodada - 1) % pausa_cada == 0:
             horario_atual += timedelta(minutes=pausa_duracao)
             
-        expositores_restantes -= usados_expositores
+        vendedores_restantes -= usados_vendedores
 
     return rodadas_criadas
+
+

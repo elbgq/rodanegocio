@@ -69,7 +69,7 @@
         <tr>
             <th>Nº Mesa</th>
             <th>Comprador</th>
-            <th>Expositor</th>
+            <th>Vendedor</th>
             <th>Status</th>
             <th style="width: 150px;">Ações</th>
         </tr>
@@ -80,7 +80,7 @@
         <tr>
             <td>{{ mesa.numero }}</td>
             <td>{{ mesa.comprador.nome }}</td>
-            <td>{{ mesa.expositor.nome }}</td>
+            <td>{{ mesa.vendedor.nome }}</td>
             <td>
             <span class="badge bg-{{ mesa.status }}">
                 {{ mesa.status|title }}

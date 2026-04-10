@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Evento, Empresa, Representante, Mesa, Interesse, Rodada
+from .models import Evento, Empresa, Representante, Mesa, Interesse, Rodada, EmpresaEvento
 from .forms import EmpresaForm
 
 # Register your models here.
@@ -13,6 +13,11 @@ class EmpresaAdmin(admin.ModelAdmin):
     form: EmpresaForm
     list_display = ('nome', 'segmento')
     search_fields = ('nome', 'segmento')
+
+@admin.register(EmpresaEvento)
+class EmpresaEventoAdmin(admin.ModelAdmin):
+    list_display = ('empresa', 'evento', 'participa')
+    list_filter = ('evento', 'participa')
     
 @admin.register(Representante)
 class RepresentanteAdmin(admin.ModelAdmin):
@@ -26,7 +31,7 @@ class RodadaAdmin(admin.ModelAdmin):
 
 @admin.register(Mesa)
 class MesaAdmin(admin.ModelAdmin):
-    list_display = ('numero', 'rodada', 'comprador', 'expositor')
+    list_display = ('numero', 'rodada', 'comprador', 'vendedor')
     search_fields = ('numero',)
 
 @admin.register(Interesse)

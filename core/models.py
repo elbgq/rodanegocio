@@ -5,22 +5,9 @@ from django.urls import reverse_lazy
 from django.utils import timezone
 from django.core.exceptions import ValidationError
 from datetime import datetime, time
+from localflavor.br.models import BRCNPJField
 
-# ============================
-# EVENTO
-# ============================
-class Evento(models.Model):
-    nome = models.CharField(max_length=255)
-    data = models.DateField(default=timezone.now)
-    local = models.CharField(max_length=255)
-    descricao = models.TextField(blank=True)
-    inicio_ev = models.TimeField(default=time(8, 0))
-    termino_ev = models.TimeField(default=time(18, 0))
 
-    def __str__(self):
-        return f"{self.nome} - {self.data:%d/%m/%Y}"
-
-    
 # ============================
 # INTERESSE
 # ============================
@@ -51,13 +38,15 @@ class Interesse(models.Model):
 class Empresa(models.Model):
     CHOISES_MODALIDADE = [
         ("COMPRADOR", "Comprador"),
-        ("EXPOSITOR", "Expositor"),
+        ("VENDEDOR", "Vendedor"),
     ]
     nome = models.CharField(max_length=255)
-    interesses = models.ManyToManyField(Interesse, related_name="empresas", blank=True)
+    cnpj = BRCNPJField(unique=True, null=True, blank=True)
+    endereco = models.OneToOneField("Endereco", on_delete=models.SET_NULL, null=True, blank=True)
     site = models.CharField(max_length=255, blank=True)
     segmento = models.CharField(max_length=255, blank=True)
-    modalidade = models.CharField(max_length=255, blank=True, choices=CHOISES_MODALIDADE, default="EXPOSITOR")
+    modalidade = models.CharField(max_length=255, blank=True, choices=CHOISES_MODALIDADE, default="VENDEDOR")
+    interesses = models.ManyToManyField(Interesse, related_name="empresas", blank=True)
 
     def save(self, *args, **kwargs):
         if self.site:
@@ -68,6 +57,55 @@ class Empresa(models.Model):
 
     def __str__(self):
         return self.nome
+    
+# ============================
+# ENDEREÇO
+# ============================
+class Endereco(models.Model):
+    rua = models.CharField(max_length=255)
+    numero = models.CharField(max_length=20, blank=True)
+    complemento = models.CharField(max_length=255, blank=True)
+    bairro = models.CharField(max_length=255, blank=True)
+    cidade = models.CharField(max_length=255)
+    estado = models.CharField(max_length=2)
+    cep = models.CharField(max_length=20, blank=True)
+    pais = models.CharField(max_length=255, default="Brasil")
+
+    def __str__(self):
+        return f"{self.rua}, {self.numero} - {self.cidade}/{self.estado}"
+    
+# ============================
+# EVENTO
+# ============================
+class Evento(models.Model):
+    nome = models.CharField(max_length=255)
+    data = models.DateField(default=timezone.now)
+    local = models.CharField(max_length=255)
+    descricao = models.TextField(blank=True)
+    inicio_ev = models.TimeField(default=time(8, 0))
+    termino_ev = models.TimeField(default=time(18, 0))
+    participantes = models.ManyToManyField(
+        Empresa, through='EmpresaEvento',
+        related_name='eventos_participantes'
+)
+
+    def __str__(self):
+        return f"{self.nome} - {self.data:%d/%m/%Y}"
+
+# ===============================
+# EMPRESA PARTICIPANTE DE EVENTO
+# ===============================
+class EmpresaEvento(models.Model):
+    empresa = models.ForeignKey(Empresa, on_delete=models.CASCADE)
+    evento = models.ForeignKey(Evento, on_delete=models.CASCADE)
+    participa = models.BooleanField(default=True)
+
+    class Meta:
+        unique_together = ('empresa', 'evento')
+
+    def __str__(self):
+        return f"{self.empresa.nome} — {self.evento.nome} ({'Participa' if self.participa else 'Não participa'})"
+    
 
 # ============================
 # REPRESENTANTE
@@ -75,6 +113,7 @@ class Empresa(models.Model):
 class Representante(models.Model):
     empresa = models.ForeignKey(Empresa, on_delete=models.CASCADE, related_name='representantes')
     nome = models.CharField(max_length=255)
+    cargo = models.CharField(max_length=255, blank=True)
     email = models.EmailField()
     telefone = models.CharField(max_length=20, blank=True)
 
@@ -120,18 +159,18 @@ class Mesa(models.Model):
         blank=True
     )
 
-    expositor = models.ForeignKey(
+    vendedor = models.ForeignKey(
         Empresa,
         on_delete=models.CASCADE,
-        related_name="mesas_como_expositor",
+        related_name="mesas_como_vendedor",
         null=True,
         blank=True
     )
     @property
     def status(self):
-        if self.comprador and self.expositor:
+        if self.comprador and self.vendedor:
             return "completa"
-        elif self.comprador or self.expositor:
+        elif self.comprador or self.vendedor:
             return "vaga"
         return "vazia"
     
