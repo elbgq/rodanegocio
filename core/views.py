@@ -496,6 +496,10 @@ def rodadas_gerar(request, evento_id):
 # ========================================================
 def rodadas_confirmar(request, evento_id):
     evento = get_object_or_404(Evento, id=evento_id)
+    # Limpa mensagens antigas
+    storage = get_messages(request)
+    for _ in storage:
+        pass
 
     # Recupera parâmetros salvos na sessão
     params = request.session.get("rodadas_params")
