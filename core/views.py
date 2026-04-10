@@ -15,6 +15,7 @@ from django.views import View
 from django.contrib import messages
 from django.core.paginator import Paginator
 from core.services.matchmaking import gerar_todas_as_rodadas
+from django.contrib.messages import get_messages
 
 
 # -----------------------------
@@ -486,7 +487,6 @@ def rodadas_gerar(request, evento_id):
             "Existem empresas cadastradas que não estão inscritas neste evento. "
             "Confirme se isso está correto antes de gerar as rodadas."
         )
-        return redirect("core:evento_participantes", evento_id)
 
     # ============================
     # SE TUDO OK → GERA RODADAS

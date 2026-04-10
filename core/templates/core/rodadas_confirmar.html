@@ -2,6 +2,14 @@
 {% load static %}
 {% block content %}
 
+{% if messages %}
+    {% for message in messages %}
+        <div class="alert alert-{{ message.tags }}">
+            {{ message }}
+        </div>
+    {% endfor %}
+{% endif %}
+
 <h2>Confirmar Geração das Rodadas — {{ evento.nome }}</h2>
 
 <div class="alert alert-warning">
@@ -33,7 +41,7 @@
 </div>
 {% endif %}
 
-<form method="post" action="{% url 'core:rodadas_gerar' evento.id %}">
+<form method="post" action="{% url 'core:rodadas_processar' evento.id %}">
     {% csrf_token %}
     <button class="btn btn-success">Confirmar e Gerar Rodadas</button>
     <a href="{% url 'core:evento_participantes' evento.id %}" class="btn btn-secondary">Voltar</a>
