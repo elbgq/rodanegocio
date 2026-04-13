@@ -2,6 +2,14 @@
 {% load static %}
 {% block content %}
 
+{% if messages %}
+    {% for message in messages %}
+        <div class="alert alert-{{ message.tags }}">
+            {{ message }}
+        </div>
+    {% endfor %}
+{% endif %}
+
 <h2 class="mb-4">Gerenciar Participantes — {{ evento.nome }}</h2>
 <p><strong>Data:</strong> {{ evento.data }}</p>
 <p><strong>Local:</strong> {{ evento.local }}</p>
@@ -86,9 +94,18 @@
         </li>
         {% endfor %}
     </ul>
-
-    <button class="btn btn-primary">Salvar Participantes</button>
     <a href="{% url 'core:evento_detail' evento.id %}" class="btn btn-secondary">Voltar</a>
+    <button class="btn btn-primary">Salvar Participantes</button>
+    
+    {% if compradores_inscritos > 0 and vendedores_inscritos > 0 %}
+        <a href="{% url 'core:rodadas_gerar' evento.id %}" class="btn btn-success">
+            Gerar Rodadas
+        </a>
+    {% else %}
+        <button class="btn btn-secondary" disabled>
+            Gerar Rodadas
+        </button>
+    {% endif %}
 </form>
 
 <!-- Scripts -->

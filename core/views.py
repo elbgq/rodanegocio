@@ -380,6 +380,25 @@ def evento_participantes(request, evento_id):
 
     percentual = round((total_inscritas / total_empresas) * 100) if total_empresas > 0 else 0
 
+    # ==============================
+    # ALERTAS ANTES DE GERAR RODADAS
+    # ==============================
+    
+    # 1. Empresas cadastradas mas não inscritas
+    if total_inscritas < total_empresas:
+        messages.warning(
+            request,
+            "Existem empresas cadastradas que ainda não foram inscritas neste evento."
+        )
+    # 2. Não há compradores ou vendedores suficientes
+    if compradores_inscritos == 0 or vendedores_inscritos == 0:
+        messages.error(
+            request,
+            "Para gerar rodadas, é necessário ter pelo menos 1 comprador e 1 vendedor inscritos."
+        )
+    # ============================
+    # PROCESSAMENTO DO FORMULÁRIO
+    # ============================
     if request.method == "POST":
         selecionadas = request.POST.getlist("empresas")
 
@@ -395,7 +414,7 @@ def evento_participantes(request, evento_id):
             )
 
         messages.success(request, "Participantes atualizados com sucesso.")
-        return redirect("core:evento_detail", evento.id)
+        return redirect("core:evento_participantes", evento.id)
 
 
     context = {
@@ -696,8 +715,8 @@ def mesa_relatorio(request, pk):
     comprador = mesa.comprador
     vendedor = mesa.vendedor
 
-    interesses_comprador = set(comprador.interesses.all())
-    interesses_vendedor = set(vendedor.interesses.all())
+    interesses_comprador = set(comprador.interesses.all()) if comprador else set()
+    interesses_vendedor = set(vendedor.interesses.all()) if comprador else set()
 
     afinidades = interesses_comprador.intersection(interesses_vendedor)
     complementares = interesses_comprador.symmetric_difference(interesses_vendedor)

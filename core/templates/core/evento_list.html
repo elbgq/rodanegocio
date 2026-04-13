@@ -37,11 +37,11 @@
                     </a>
                     
                 {% else %}
-                    <a href="{% url 'core:rodadas_gerar' evento.id %}" class="btn btn-sm btn-success">
-                        Gerar Rodadas
+                    <a href="{% url 'core:evento_participantes' evento.id %}" class="btn btn-sm btn-success">
+                        Gerenciar Participantes das Rodadas
                     </a>
                 {% endif %}
-
+ 
             </td>
         </tr>
         {% endfor %}
