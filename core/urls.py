@@ -12,7 +12,9 @@ urlpatterns = [
     path('empresas/nova/', views.EmpresaCreateView.as_view(), name='empresa_create'),
     path('empresas/<int:pk>/', views.EmpresaDetailView.as_view(), name='empresa_detail'),
     path('empresas/<int:pk>/editar/', views.EmpresaUpdateView.as_view(), name='empresa_update'),
+    path("empresa/<int:pk>/excluir/", views.empresa_excluir, name="empresa_excluir"),
     path("empresa/<int:pk>/perfil/", views.empresa_perfil, name="empresa_perfil"),
+    path("empresas/importar/", views.empresa_importar, name="empresa_importar"),
     
     # CATEGORIAS
     path("categorias/", views.categoria_list, name="categoria_list"),
@@ -33,16 +35,18 @@ urlpatterns = [
     name="representante_editar"),
     path("representantes/<int:pk>/excluir/", views.RepresentanteDeleteView.as_view(),
     name="representante_excluir"),
+    path("representantes/importar/", views.representante_importar, name="representante_importar"),
     
     # EVENTOS
     path('eventos/', views.EventoListView.as_view(), name='evento_list'),
     path('eventos/novo/', views.EventoCreateView.as_view(), name='evento_create'),
     path('eventos/<int:pk>/', views.EventoDetailView.as_view(), name='evento_detail'),
     path('eventos/<int:pk>/editar/', views.EventoUpdateView.as_view(), name='evento_update'),
-    path('eventos/<int:pk>/excluir/', views.EventoDeleteView.as_view(), name='evento_delete'),
+    path('eventos/<int:pk>/excluir/', views.EventoDeleteView.as_view(), name='evento_confirm_delete'),
     path("evento/<int:evento_id>/participantes/", views.evento_participantes, name="evento_participantes"),
     path("evento/<int:evento_id>/rodadas/confirmar/", views.rodadas_confirmar, name="rodadas_confirmar"),
     path("evento/<int:evento_id>/rodadas/processar/", views.rodadas_processar, name="rodadas_processar"),
+    path("evento/<int:evento_id>/relatorio-inscritos/", views.relatorio_inscritos, name="evento_relatorio_inscritos"),
      
     # RODADAS
     path("evento/<int:evento_id>/rodadas/gerar/", views.rodadas_gerar, name="rodadas_gerar"),

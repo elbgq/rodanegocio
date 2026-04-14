@@ -3,14 +3,29 @@
 
 {% block content %}
 <h2 class="mb-4">Empresas</h2>
-
-<a href="{% url 'core:interesse_list' %}" class="btn btn-secondary mb-3">
+<a href="{% url 'home' %}" class="btn btn-secondary mb-3">Voltar</a>
+<a href="{% url 'core:interesse_list' %}" class="btn btn-success mb-3">
     Gerenciar interesses
 </a>
 <a href="{% url 'core:empresa_create' %}" class="btn btn-primary mb-3">
     Cadastrar nova empresa
 </a>
- 
+<a href="{% url 'core:empresa_importar' %}" class="btn btn-outline-info mb-3">
+    Importar Empresas
+</a>
+<!-- Campo de busca -->
+<form method="get" class="mb-3">
+    <div class="input-group">
+        <input type="text" name="q" class="form-control"
+               placeholder="Buscar empresa..."
+               value="{{ termo }}">
+        <button class="btn btn-primary">Buscar</button>
+    </div>
+</form>
+
+{% if empresas %}
+    <!-- sua tabela/lista aqui -->
+
 <table class="table table-striped table-hover align-middle">
     <thead class="table-dark">
         <tr>
@@ -26,12 +41,12 @@
         {% for empresa in empresas %}
         <tr>
             <td class="fw-bold">{{ empresa.nome }}</td>
-            <td class="fw-bold">{{ empresa.modalidade }}</td>
+            <td class="fw-bold">{{ empresa.modalidade|title }}</td>
             <td>
                 {% if empresa.representantes.exists %}
-                    <ul class="mb-0">
+                    <ul class="mb-0 list-unstyled">
                         {% for rep in empresa.representantes.all %}
-                            <li>{{ rep.nome }} — {{ rep.cargo }} - {{ rep.email }} - {{ rep.telefone }}</li>
+                            <li>{{ rep.nome }} — {{ rep.cargo }} </li>
                         {% endfor %}
                     </ul>
                 {% else %}
@@ -71,21 +86,31 @@
                     class="btn btn-outline-primary btn-sm">
                     Ver Perfil
                 </a>
-                <a href="{% url 'core:empresa_update' empresa.id %}" 
-                   class="btn btn-warning btn-sm">
-                    Editar
-                </a>
                 <a href="{% url 'core:empresa_detail' empresa.id %}" 
                    class="btn btn-outline-primary btn-sm">
                     Ver detalhes
                 </a>
+                <a href="{% url 'core:empresa_update' empresa.id %}" 
+                   class="btn btn-warning btn-sm">
+                    Editar
+                </a>
+                <a href="{% url 'core:empresa_excluir' empresa.id %}" class="btn btn-danger btn-sm">
+                    Excluir
+                </a>
+
+                
             </td>
         </tr>
         {% endfor %}
     </tbody>
 </table>
-{% include "core/partials/pagination.html" %}
-<a href="{% url 'home' %}" class="btn btn-secondary">Voltar</a>
 
+{% include "core/partials/pagination.html" %}
+
+{% else %}
+    <div class="alert alert-warning">
+        Nenhuma empresa encontrada para "{{ termo }}".
+    </div>
+{% endif %}
 
 {% endblock %}

@@ -42,7 +42,7 @@ class Empresa(models.Model):
     ]
     nome = models.CharField(max_length=255)
     cnpj = BRCNPJField(unique=True, null=True, blank=True)
-    endereco = models.OneToOneField("Endereco", on_delete=models.SET_NULL, null=True, blank=True)
+    endereco = models.ForeignKey("Endereco", on_delete=models.SET_NULL, null=True, blank=True)
     site = models.CharField(max_length=255, blank=True)
     segmento = models.CharField(max_length=255, blank=True)
     modalidade = models.CharField(max_length=255, blank=True, choices=CHOISES_MODALIDADE, default="VENDEDOR")
@@ -62,12 +62,12 @@ class Empresa(models.Model):
 # ENDEREÇO
 # ============================
 class Endereco(models.Model):
-    rua = models.CharField(max_length=255)
+    rua = models.CharField(max_length=255, blank=True)
     numero = models.CharField(max_length=20, blank=True)
     complemento = models.CharField(max_length=255, blank=True)
     bairro = models.CharField(max_length=255, blank=True)
     cidade = models.CharField(max_length=255)
-    estado = models.CharField(max_length=2)
+    estado = models.CharField(max_length=255)
     cep = models.CharField(max_length=20, blank=True)
     pais = models.CharField(max_length=255, default="Brasil")
 
@@ -114,7 +114,7 @@ class Representante(models.Model):
     empresa = models.ForeignKey(Empresa, on_delete=models.CASCADE, related_name='representantes')
     nome = models.CharField(max_length=255)
     cargo = models.CharField(max_length=255, blank=True)
-    email = models.EmailField()
+    email = models.EmailField(blank=True)
     telefone = models.CharField(max_length=20, blank=True)
 
     def __str__(self):

@@ -8,7 +8,7 @@ from .models import (Empresa, Evento, Rodada, Representante, Mesa,
                      Interesse, Categoria, EmpresaEvento, Endereco)
 from .forms import (RepresentanteForm, EmpresaForm, CategoriaForm,
                     InteresseForm, EnderecoForm)
-from django.views.generic import TemplateView
+from django.views.generic import TemplateView, CreateView, UpdateView, DeleteView
 from django.core.exceptions import ValidationError
 from datetime import datetime, timedelta, time, date
 from django.views import View
@@ -16,6 +16,10 @@ from django.contrib import messages
 from django.core.paginator import Paginator
 from core.services.matchmaking import gerar_todas_as_rodadas
 from django.contrib.messages import get_messages
+import csv
+
+from django.contrib import messages
+from django.db import IntegrityError
 
 
 # -----------------------------
@@ -61,6 +65,20 @@ class EmpresaListView(ListView):
     context_object_name = 'empresas'
     paginate_by = 15  # Exibe 20 por página
     ordering = ["nome"]  # Ordena por categoria e depois por nome
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        termo = self.request.GET.get("q", "").strip()
+
+        if termo:
+            qs = qs.filter(nome__icontains=termo)
+
+        return qs
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["termo"] = self.request.GET.get("q", "")
+        return context
 
 
 class EmpresaDetailView(DetailView):
@@ -114,7 +132,7 @@ class EmpresaCreateView(CreateView):
         return self.render_to_response(
             self.get_context_data(form=form, form_endereco=form_endereco)
         )
-        
+         
 # ==============================
 class EmpresaUpdateView(UpdateView):
     model = Empresa
@@ -127,7 +145,8 @@ class EmpresaUpdateView(UpdateView):
 
         empresa = self.object
         endereco = empresa.endereco or Endereco()
-
+        
+        # Se o form_endereco já veio do POST, usa ele
         if "form_endereco" not in context:
             context["form_endereco"] = EnderecoForm(instance=endereco)
 
@@ -146,22 +165,63 @@ class EmpresaUpdateView(UpdateView):
         context["interesses_por_categoria"] = interesses_por_categoria
         
         return context
+    
     def form_valid(self, form):
         empresa = form.save(commit=False)
+        # Endereço atual ou novo
         endereco = empresa.endereco or Endereco()
 
+        # Form de endereço
         form_endereco = EnderecoForm(self.request.POST, instance=endereco)
 
-        if form_endereco.is_valid():
-            endereco = form_endereco.save()
-            empresa.endereco = endereco
+        # Salva endereço
+        campos_endereco = ["cidade", "estado", "pais"]
+        nenhum_campo_preenchido = not any(self.request.POST.get(c) for c in campos_endereco)
+        
+        if nenhum_campo_preenchido:
+            # Remove o endereço da empresa
+            empresa.endereco = None
             empresa.save()
             form.save_m2m()
-            return super().form_valid(form)
+            messages.success(self.request, "Empresa atualizada com sucesso.")
+            return redirect(self.success_url)
+        
+        # Se o usuário preencheu algo → validar endereço
+        if not form_endereco.is_valid():
+            messages.error(self.request, "Há erros no endereço. Verifique os campos.")
+            return self.render_to_response(
+                self.get_context_data(form=form, form_endereco=form_endereco)
+            )
+        # Endereço válido → salvar
+        endereco = form_endereco.save()
+        empresa.endereco = endereco
 
-        return self.render_to_response(
-            self.get_context_data(form=form, form_endereco=form_endereco)
-        )
+
+        try:
+            empresa.save()
+            form.save_m2m()
+            messages.success(self.request, "Empresa atualizada com sucesso.")
+            return redirect(self.success_url)
+
+        except Exception as e:
+            messages.error(self.request, f"Erro ao salvar empresa: {e}")
+            return self.render_to_response(
+                self.get_context_data(form=form, form_endereco=form_endereco)
+            )
+
+
+# ==============================
+def empresa_excluir(request, pk):
+    empresa = get_object_or_404(Empresa, pk=pk)
+
+    if request.method == "POST":
+        nome = empresa.nome
+        empresa.delete()
+        messages.success(request, f"A empresa '{nome}' foi excluída com sucesso.")
+        return redirect("core:empresa_list")
+
+    return render(request, "core/empresa_excluir.html", {"empresa": empresa})
+
 
 # =============================
 def empresa_perfil(request, pk):
@@ -182,6 +242,76 @@ def empresa_perfil(request, pk):
     }
 
     return render(request, "core/empresa_perfil.html", context)
+
+# -----------------------------
+# EMPRESAS - IMPORTAÇÃO DE CSV
+# -----------------------------
+def empresa_importar(request):
+    if request.method == "POST":
+        arquivo = request.FILES.get("arquivo")
+
+        if not arquivo:
+            messages.error(request, "Selecione um arquivo CSV.")
+            return redirect("core:empresas_importar")
+
+        try:
+            decoded = arquivo.read().decode("utf-8").splitlines()
+            reader = csv.DictReader(decoded, delimiter=";")
+
+            # Remove BOM, espaços e normaliza para minúsculas
+            reader.fieldnames = [
+                h.strip().lower().replace("\ufeff", "")
+                for h in reader.fieldnames
+            ]
+
+            criadas = 0
+            ignoradas = 0
+
+            for row in reader:
+                row = {k.strip().lower(): v for k, v in row.items()}
+                nome = row.get("nome")
+                modalidade = row.get("modalidade")
+                cidade = (row.get("cidade") or "").strip().title()
+                estado = (row.get("estado") or "").strip().title()
+                pais = (row.get("pais") or "").strip().title()
+
+                if not nome:
+                    ignoradas += 1
+                    continue
+                
+                # 1. Criar ou obter o endereço
+                endereco, _ = Endereco.objects.get_or_create(
+                    cidade=cidade,
+                    estado=estado,
+                    pais=pais
+                )
+
+                # 2. Criar ou obter a empresa
+                empresa, criada = Empresa.objects.get_or_create(
+                    nome=nome,
+                    defaults={
+                        "modalidade": modalidade,
+                        "endereco": endereco
+                    }
+                )
+
+                # 3. Se a empresa já existia, atualizar endereço (opcional)
+                if not criada:
+                    empresa.endereco = endereco
+                    empresa.modalidade = modalidade
+                    empresa.save()
+
+                criadas += 1
+
+
+            messages.success(request, f"{criadas} empresas importadas. {ignoradas} ignoradas.")
+            return redirect("core:empresa_list")
+
+        except Exception as e:
+            messages.error(request, f"Erro ao processar arquivo: {e}")
+            return redirect("core:empresa_importar")
+
+    return render(request, "core/empresa_importar.html")
 
 # -----------------------------
 # INTERESSES
@@ -265,12 +395,69 @@ class InteresseCreateView(CreateView):
     template_name = "core/interesse_form.html"
     success_url = reverse_lazy("core:interesse_list")
 
+    def form_valid(self, form):
+        try:
+            response = super().form_valid(form)
+            messages.success(self.request, "Interesse cadastrado com sucesso.")
+            return response
+
+        except IntegrityError:
+            messages.error(
+                self.request,
+                "Este interesse já está cadastrado. Escolha outro nome."
+            )
+            return self.form_invalid(form)
+
+        except Exception as e:
+            messages.error(
+                self.request,
+                f"Erro inesperado ao salvar o interesse: {e}"
+            )
+            return self.form_invalid(form)
+
+    def form_invalid(self, form):
+        # Exibe erros de validação do próprio Django
+        for campo, erros in form.errors.items():
+            for erro in erros:
+                messages.error(self.request, f"{campo}: {erro}")
+
+        return super().form_invalid(form)
+
 
 class InteresseUpdateView(UpdateView):
     model = Interesse
     form_class = InteresseForm
     template_name = "core/interesse_form.html"
     success_url = reverse_lazy("core:interesse_list")
+
+    def form_valid(self, form):
+        try:
+            response = super().form_valid(form)
+            messages.success(self.request, "Interesse atualizado com sucesso.")
+            return response
+
+        except IntegrityError:
+            messages.error(
+                self.request,
+                "Já existe um interesse com este nome. Escolha outro nome."
+            )
+            return self.form_invalid(form)
+
+        except Exception as e:
+            messages.error(
+                self.request,
+                f"Erro inesperado ao atualizar o interesse: {e}"
+            )
+            return self.form_invalid(form)
+
+    def form_invalid(self, form):
+        # Exibe erros de validação do Django
+        for campo, erros in form.errors.items():
+            for erro in erros:
+                messages.error(self.request, f"{campo}: {erro}")
+
+        return super().form_invalid(form)
+
 
 class InteresseDeleteView(DeleteView):
     model = Interesse
@@ -320,6 +507,91 @@ class RepresentanteDeleteView(DeleteView):
     def get_success_url(self):
         return reverse_lazy("core:empresa_detail", kwargs={"pk": self.object.empresa.id})
 
+# -----------------------------
+def representante_importar(request):
+    if request.method == "POST":
+        # Limpa mensagens antigas
+        storage = get_messages(request)
+        for _ in storage:
+            pass
+
+        arquivo = request.FILES.get("arquivo")
+
+        if not arquivo:
+            messages.error(request, "Nenhum arquivo enviado.")
+            return redirect("core:representante_importar")
+
+        try:
+            decoded = arquivo.read().decode("utf-8").splitlines()
+        except UnicodeDecodeError:
+            messages.error(request, "Erro ao ler o arquivo. Use UTF-8.")
+            return redirect("core:representante_importar")
+
+        reader = csv.DictReader(decoded, delimiter=";")
+
+        # Normaliza cabeçalhos
+        reader.fieldnames = [
+            h.strip().lower().replace("\ufeff", "")
+            for h in reader.fieldnames
+        ]
+
+        criados = 0
+        ignorados = 0
+        erros = []
+
+        for idx, row in enumerate(reader, start=2):  # linha 2 = primeira linha de dados
+            row = {k.strip().lower(): (v or "").strip() for k, v in row.items()}
+
+            empresa_nome = row.get("empresa")
+            nome = row.get("nome")
+            cargo = row.get("cargo")
+
+            # Validação básica
+            if not empresa_nome:
+                erros.append(f"Linha {idx}: Campo 'empresa' vazio.")
+                ignorados += 1
+                continue
+
+            if not nome:
+                erros.append(f"Linha {idx}: Campo 'nome' vazio.")
+                ignorados += 1
+                continue
+
+            # Busca empresa
+            try:
+                empresa = Empresa.objects.get(nome__iexact=empresa_nome)
+            except Empresa.DoesNotExist:
+                erros.append(f"Linha {idx}: Empresa '{empresa_nome}' não encontrada.")
+                ignorados += 1
+                continue
+
+            # Criação do representante
+            try:
+                Representante.objects.create(
+                    empresa=empresa,
+                    nome=nome,
+                    cargo=cargo or "",
+                )
+                criados += 1
+
+            except Exception as e:
+                erros.append(f"Linha {idx}: Erro ao criar representante: {e}")
+                ignorados += 1
+
+        # Mensagem final
+        messages.success(
+            request,
+            f"{criados} representantes importados. {ignorados} ignorados."
+        )
+
+        # Exibe erros, se houver
+        if erros:
+            for erro in erros:
+                messages.error(request, erro)
+
+        return redirect("core:representante_importar")
+
+    return render(request, "core/representante_importar.html")
 
 # -----------------------------
 # EVENTO
@@ -358,6 +630,11 @@ class EventoDeleteView(DeleteView):
 def evento_participantes(request, evento_id):
     evento = get_object_or_404(Evento, id=evento_id)
     empresas = Empresa.objects.all()
+
+    # LIMPA MENSAGENS ANTIGAS
+    storage = get_messages(request)
+    for _ in storage:
+        pass
 
     # Empresas já inscritas
     inscritas = EmpresaEvento.objects.filter(
@@ -402,6 +679,18 @@ def evento_participantes(request, evento_id):
     if request.method == "POST":
         selecionadas = request.POST.getlist("empresas")
 
+        # Validação: mínimo de 10 interesses
+        for empresa_id in selecionadas:
+            empresa = Empresa.objects.get(id=empresa_id)
+            
+            if empresa.interesses.count() < 10:
+                messages.error(
+                    request,
+                    f"A empresa '{empresa.nome}' possui menos de 10 interesses marcados. "
+                    "Atualize os interesses antes de inscrevê-la."
+                )
+                return redirect("core:evento_participantes", evento.id)
+
         # Limpa participações anteriores
         EmpresaEvento.objects.filter(evento=evento).delete()
 
@@ -429,6 +718,29 @@ def evento_participantes(request, evento_id):
     }
 
     return render(request, "core/evento_participantes.html", context)
+# -----------------------------------------------
+# RELATÓRIO DE PARTICIPANTES INSCRITOS NO EVENTO
+# -----------------------------------------------
+def relatorio_inscritos(request, evento_id):
+    evento = get_object_or_404(Evento, id=evento_id)
+
+    inscritos = Empresa.objects.filter(
+        empresaevento__evento=evento,
+        empresaevento__participa=True
+    ).order_by("modalidade", "nome")
+
+    compradores = inscritos.filter(modalidade="COMPRADOR")
+    vendedores = inscritos.filter(modalidade="VENDEDOR")
+
+    context = {
+        "evento": evento,
+        "inscritos": inscritos,
+        "compradores": compradores,
+        "vendedores": vendedores,
+        "total": inscritos.count(),
+    }
+
+    return render(request, "core/evento_relatorio_inscritos.html", context)
 
 # -----------------------------
 # RODADAS
@@ -515,10 +827,6 @@ def rodadas_gerar(request, evento_id):
 # ========================================================
 def rodadas_confirmar(request, evento_id):
     evento = get_object_or_404(Evento, id=evento_id)
-    # Limpa mensagens antigas
-    storage = get_messages(request)
-    for _ in storage:
-        pass
 
     # Recupera parâmetros salvos na sessão
     params = request.session.get("rodadas_params")
@@ -538,6 +846,15 @@ def rodadas_confirmar(request, evento_id):
         empresaevento__participa=True
     )
 
+    # Bloqueio de segurança
+    if compradores.count() == 0 or vendedores.count() == 0:
+        messages.error(
+            request,
+            "Para gerar rodadas, é necessário ter pelo menos 1 comprador e 1 vendedor inscritos."
+        )
+        return redirect("core:evento_participantes", evento_id)
+
+    # Empresas não inscritas
     inscritas_ids = list(compradores.values_list("id", flat=True)) + \
                     list(vendedores.values_list("id", flat=True))
 
@@ -547,6 +864,8 @@ def rodadas_confirmar(request, evento_id):
         "evento": evento,
         "compradores": compradores,
         "vendedores": vendedores,
+        "qtd_compradores": compradores.count(),
+        "qtd_vendedores": vendedores.count(),
         "nao_inscritas": nao_inscritas,
         "params": params,
     }
@@ -555,13 +874,43 @@ def rodadas_confirmar(request, evento_id):
 
 # ========================================================
 def rodadas_processar(request, evento_id):
+    # - Recupera o evento
     evento = get_object_or_404(Evento, id=evento_id)
 
+    # Segurança: só aceita POST
+    if request.method != "POST":
+        messages.error(request, "Acesso inválido. Confirme a geração das rodadas antes de prosseguir.")
+        return redirect("core:rodadas_confirmar", evento_id)
+    
+    # Recupera parâmetros da sessão
     params = request.session.get("rodadas_params")
     if not params:
         messages.error(request, "Nenhum parâmetro encontrado. Preencha o formulário novamente.")
         return redirect("core:rodadas_gerar", evento_id)
 
+    # Evita duplicação de rodadas
+    if Rodada.objects.filter(evento=evento).exists():
+        messages.warning(request, "As rodadas deste evento já foram geradas anteriormente.")
+        return redirect("core:rodadas_geradas", evento_id)
+
+    # Verifica participantes novamente (segurança extra)
+    compradores = Empresa.objects.filter(
+        modalidade="COMPRADOR",
+        empresaevento__evento=evento,
+        empresaevento__participa=True
+    )
+
+    vendedores = Empresa.objects.filter(
+        modalidade="VENDEDOR",
+        empresaevento__evento=evento,
+        empresaevento__participa=True
+    )
+
+    if compradores.count() == 0 or vendedores.count() == 0:
+        messages.error(request, "Não é possível gerar rodadas sem compradores e vendedores inscritos.")
+        return redirect("core:evento_participantes", evento_id)
+
+    # - Chama o algoritmo de matchmaking para gerar as rodadas
     rodadas = gerar_todas_as_rodadas(
         evento,
         params["qtd_mesas"],
@@ -575,6 +924,7 @@ def rodadas_processar(request, evento_id):
     # Limpa sessão
     del request.session["rodadas_params"]
 
+    # Renderiza o template final com as rodadas geradas
     return render(request, "core/rodadas_geradas.html", {
         "evento": evento,
         "rodadas": rodadas

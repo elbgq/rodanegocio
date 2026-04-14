@@ -85,29 +85,30 @@
                        name="empresas"
                        value="{{ empresa.id }}"
                        class="chk-empresa me-2"
-                       data-modalidade="{{ empresa.modalidade }}"
+                       data-modalidade="{{ empresa.modalidade|title }}"
                        {% if empresa.id in inscritas %}checked{% endif %}>
                 {{ empresa.nome }}
             </label>
 
-            <span class="badge bg-light text-dark">{{ empresa.modalidade }}</span>
+            <span class="badge bg-light text-dark">{{ empresa.modalidade|title }}</span>
         </li>
         {% endfor %}
     </ul>
-    <a href="{% url 'core:evento_detail' evento.id %}" class="btn btn-secondary">Voltar</a>
+    
     <button class="btn btn-primary">Salvar Participantes</button>
     
-    {% if compradores_inscritos > 0 and vendedores_inscritos > 0 %}
-        <a href="{% url 'core:rodadas_gerar' evento.id %}" class="btn btn-success">
-            Gerar Rodadas
-        </a>
-    {% else %}
-        <button class="btn btn-secondary" disabled>
-            Gerar Rodadas
-        </button>
-    {% endif %}
+    
 </form>
-
+{% if compradores_inscritos > 0 and vendedores_inscritos > 0 %}
+    <a href="{% url 'core:rodadas_gerar' evento.id %}" class="btn btn-success">
+        Gerar Rodadas
+    </a>
+{% else %}
+    <button class="btn btn-secondary" disabled>
+        Gerar Rodadas
+    </button>
+{% endif %}
+<a href="{% url 'core:evento_detail' evento.id %}" class="btn btn-secondary">Voltar</a>
 <!-- Scripts -->
 <script>
 function selecionarTodos() {

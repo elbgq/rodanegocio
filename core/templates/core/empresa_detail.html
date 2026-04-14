@@ -11,7 +11,7 @@
         <li class="list-group-item d-flex justify-content-between align-items-center">
             <div>
                 <strong>{{ rep.nome }}</strong><br>
-                <small>{{ rep.email }} — {{ rep.telefone }}</small>
+                <small>{{ rep.email }} — {{ rep.cargo }} - {{ rep.telefone }}</small>
             </div>
 
             <div>
@@ -28,10 +28,15 @@
 
 <p><strong>Site:</strong> <a href="{{ empresa.site }}">{{ empresa.site }}</a></p>
 
+<a href="{% url 'core:empresa_list' %}" class="btn btn-secondary">Voltar</a>
+
 <a href="{% url 'core:representante_novo' empresa.id %}" class="btn btn-success">
     Adicionar Representante
 </a>
-<a href="{% url 'core:empresa_update' empresa.id %}" class="btn btn-success">Editar empresa</a>
-<a href="{% url 'core:empresa_list' %}" class="btn btn-secondary">Voltar</a>
 
+<a href="{% url 'core:representante_importar' %}" class="btn btn-outline-secondary">
+    Importar Representantes
+</a>
+
+<a href="{% url 'core:empresa_update' empresa.id %}" class="btn btn-outline-warning">Editar empresa</a>
 {% endblock %}
