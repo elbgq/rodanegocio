@@ -22,6 +22,11 @@
         </div>
 
         <div class="col-md-4 mb-3">
+            <label class="form-label">Quantidade de rodadas:</label>
+            <input type="number" name="qtd_rodadas" class="form-control" required min="1">
+        </div>
+
+        <div class="col-md-4 mb-3">
             <label class="form-label">Duração de cada rodada:</label>
             <select name="duracao" class="form-select">
                 {% for valor, label in duracoes %}
@@ -57,7 +62,14 @@
         </div>
     </div>
 
-    <button type="submit" class="btn btn-success mt-3">Gerar Rodadas</button>
+    <button type="submit" name="modo" value="normal" class="btn btn-primary mt-3">
+        Gerar Rodadas (Automático)
+    </button>
+
+    <button type="submit" name="modo" value="ranking" class="btn btn-success mt-3">
+        Gerar Rodadas por Ranking
+    </button>
+
 </form>
 
 {% endblock %}

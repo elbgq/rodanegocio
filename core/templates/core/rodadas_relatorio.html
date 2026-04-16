@@ -1,0 +1,46 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block content %}
+
+<h2 class="mb-4">Agenda de Rodadas</h2>
+ 
+<table class="table table-bordered table-striped text-center align-middle">
+    <thead class="table-primary">
+        <tr>
+            <th class="text-start">Comprador</th>
+
+            {% for r in rodadas %}
+                <th>
+                    {{ r.inicio_ro|time:"H:i" }}<br>
+                    <small class="text-muted">{{ r.nome }}</small>
+                </th>
+            {% endfor %}
+        </tr>
+    </thead>
+
+    <tbody>
+        {% for linha in linhas %}
+            <tr>
+                <td class="text-start fw-bold">
+                    {{ linha.comprador.nome }}
+                </td>
+
+                {% for cel in linha.celulas %}
+                    <td {% if cel %}style="background-color: {{ cel.cor_alpha }};"{% endif %}>
+                        {% if cel %}
+                            <span style="color: {{ cel.cor_solid }}; font-weight: bold;">
+                                {{ cel.vendedor.nome }}
+                            </span>
+                        {% else %}
+                            <span class="text-muted">—</span>
+                        {% endif %}
+                    </td>
+                {% endfor %}
+            </tr>
+        {% endfor %}
+
+    </tbody>
+</table>
+
+{% endblock %}

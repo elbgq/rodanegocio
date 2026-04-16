@@ -1,0 +1,22 @@
+{% extends "core/base.html" %}
+
+{% block content %}
+<h2>Ranking de Afinidades — {{ evento.nome }}</h2>
+
+{% for item in ranking %}
+    <div class="card mb-3">
+        <div class="card-header bg-primary text-white">
+            <strong>{{ item.comprador.nome }}</strong>
+        </div>
+
+        <ul class="list-group list-group-flush">
+            {% for vendedor, score in item.melhores %}
+                <li class="list-group-item d-flex justify-content-between">
+                    <span>{{ vendedor.nome }}</span>
+                    <span class="badge bg-success">{{ score }}</span>
+                </li>
+            {% endfor %}
+        </ul>
+    </div>
+{% endfor %}
+{% endblock %}
