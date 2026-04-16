@@ -1,8 +1,8 @@
 {% extends "core/base.html" %}
-
+{% load static %}
 {% block content %}
 <h2>Ranking de Afinidades — {{ evento.nome }}</h2>
-
+<a href="{% url 'core:evento_detail' evento.id %}" class="btn btn-secondary mb-3">Voltar</a>
 {% for item in ranking %}
     <div class="card mb-3">
         <div class="card-header bg-primary text-white">

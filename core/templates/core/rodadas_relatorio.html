@@ -4,7 +4,7 @@
 {% block content %}
 
 <h2 class="mb-4">Agenda de Rodadas</h2>
- 
+<a href="{% url 'core:evento_detail' evento.id %}" class="btn btn-secondary mb-3">Voltar</a>
 <table class="table table-bordered table-striped text-center align-middle">
     <thead class="table-primary">
         <tr>
