@@ -22,7 +22,6 @@ from django.contrib import messages
 from django.db import IntegrityError
 from core.services.matchmaking import calcular_afinidade
 from core.utils import cor_para_vendedor
-from django.contrib.auth.decorators import permission_required, login_required
 from django.contrib.auth.models import Permission
 from django.shortcuts import get_object_or_404
 from django.utils import timezone

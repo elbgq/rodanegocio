@@ -1,6 +1,7 @@
 from django.shortcuts import redirect
 from django.urls import reverse
 
+'''
 class RodanegociosProtectionMiddleware:
     def __init__(self, get_response):
         self.get_response = get_response
@@ -53,3 +54,4 @@ class RodanegociosProtectionMiddleware:
         # F) Rotas normais (permitidas)
         # ---------------------------
         return self.get_response(request)
+'''

@@ -8,5 +8,4 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('', include('core.urls')),
     #path('', views.HomeView.as_view(), name='home'),
-   
 ]
