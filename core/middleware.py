@@ -8,17 +8,48 @@ class RodanegociosProtectionMiddleware:
     def __call__(self, request):
 
         caminho = request.path
- 
-        # Libera a página de acesso
-        if caminho.startswith("/acesso"):
+        
+        # Permite logout SEM interferência
+        if caminho.startswith("/accounts/logout"):
+            return self.get_response(request)
+        
+        # URLs liberadas SEM restrição
+        urls_livres = [
+           "/",
+            "/accounts/login/",
+            "/solicitar-acesso/",
+            "/admin/login/",
+        ]
+
+        if caminho in urls_livres:
             return self.get_response(request)
 
-        # Libera arquivos estáticos (CSS, JS, imagens)
-        if caminho.startswith("/static/"):
+        # ---------------------------
+        # B) Arquivos estáticos e admin
+        # ---------------------------
+        if caminho.startswith("/static/") or caminho.startswith("/admin/"):
             return self.get_response(request)
 
-        # Se não tiver acesso, bloqueia tudo
-        if not request.session.get("acesso_rodanegocios"):
-            return redirect(reverse("core:acesso_rodanegocios"))
+        # ---------------------------
+        # C) Exige login
+        # ---------------------------
+        if not request.user.is_authenticated:
+            return redirect("/accounts/login/")
 
+        # ---------------------------
+        # D) Staff tem acesso total
+        # ---------------------------
+        if request.user.is_staff:
+            return self.get_response(request)
+
+        # ---------------------------
+        # E) Rotas que exigem permissão
+        # ---------------------------
+        if caminho.startswith("/rodanegocios/"):
+            if not request.user.has_perm("core.acesso_rodanegocios"):
+                return redirect(reverse("core:acesso_negado"))
+
+        # ---------------------------
+        # F) Rotas normais (permitidas)
+        # ---------------------------
         return self.get_response(request)

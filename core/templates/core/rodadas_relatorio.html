@@ -2,9 +2,10 @@
 {% load static %}
 
 {% block content %}
+ 
+<h4 class="mb-2">Agenda de Rodadas - {{ evento.nome }}</h4>
+<p><strong>Data:</strong> {{ evento.data }} - <strong>Local:</strong> {{ evento.local }}</p>
 
-<h2 class="mb-4">Agenda de Rodadas</h2>
-<a href="{% url 'core:evento_detail' evento.id %}" class="btn btn-secondary mb-3">Voltar</a>
 <table class="table table-bordered table-striped text-center align-middle">
     <thead class="table-primary">
         <tr>
@@ -42,5 +43,5 @@
 
     </tbody>
 </table>
-
+<a href="{% url 'core:evento_detail' evento.id %}" class="btn btn-secondary mb-2">Voltar</a>
 {% endblock %}

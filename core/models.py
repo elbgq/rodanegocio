@@ -6,7 +6,26 @@ from django.utils import timezone
 from django.core.exceptions import ValidationError
 from datetime import datetime, time
 from localflavor.br.models import BRCNPJField
+from django.contrib.auth.models import User
 
+# ============================
+# PERMISSÕES DE ACESSO
+# ============================
+class Meta:
+    permissions = [
+        ("acesso_rodanegocios", "Pode acessar o sistema Rodanegocios"),
+    ]
+
+
+class SolicitacaoAcesso(models.Model):
+    usuario = models.ForeignKey(User, on_delete=models.CASCADE)
+    justificativa = models.TextField()
+    aprovado = models.BooleanField(default=False)
+    data_solicitacao = models.DateTimeField(auto_now_add=True)
+    data_aprovacao = models.DateTimeField(null=True, blank=True)
+
+    def __str__(self):
+        return f"Acesso de {self.usuario.username}"
 
 # ============================
 # INTERESSE

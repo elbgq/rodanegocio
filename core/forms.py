@@ -4,6 +4,13 @@ import re
 
 from django import forms
 from .models import Empresa
+from .models import SolicitacaoAcesso
+
+
+class SolicitacaoAcessoForm(forms.ModelForm):
+    class Meta:
+        model = SolicitacaoAcesso
+        fields = ["justificativa"]
 
 class EmpresaForm(forms.ModelForm):
     class Meta:

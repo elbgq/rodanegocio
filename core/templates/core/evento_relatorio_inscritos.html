@@ -6,7 +6,7 @@
 <h2>Relatório de Empresas Inscritas — {{ evento.nome }}</h2>
 <p><strong>Data:</strong> {{ evento.data }}</p>
 <p><strong>Local:</strong> {{ evento.local }}</p>
-
+<a href="{% url 'core:evento_detail' evento.id %}" class="btn btn-secondary">Voltar</a>
 {% if total == 0 %}
 <div class="alert alert-warning">
     Nenhuma empresa está inscrita neste evento.
@@ -41,6 +41,5 @@
     {% endfor %}
 </ul>
 
-<a href="{% url 'core:evento_detail' evento.id %}" class="btn btn-secondary">Voltar</a>
 {% endif %}
 {% endblock %}

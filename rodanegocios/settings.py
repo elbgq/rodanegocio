@@ -36,7 +36,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'core'
+    'core',
 ]
 
 MIDDLEWARE = [
@@ -127,3 +127,7 @@ STATIC_URL = '/static/'
 
 # Pastas adicionais onde o Django procura estáticos (ex: raiz do projeto)
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+
+#LOGIN_REDIRECT_URL = '/'
+LOGIN_REDIRECT_URL = '/rodanegocios/'
+LOGOUT_REDIRECT_URL = '/accounts/login/'

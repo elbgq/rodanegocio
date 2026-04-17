@@ -8,7 +8,7 @@
     {% endfor %}
 {% endif %}
 <h2>Gerar Rodadas para {{ evento.nome }}</h2>
-<h5>Data: {{ evento.data }}</h5>
+<h6>Data: {{ evento.data }} - Hora Início: {{ evento.inicio_ev }} Hs</h6>
 
 <a href="{% url 'core:evento_list' %}" class="btn btn-secondary mb-3">Voltar</a>
 

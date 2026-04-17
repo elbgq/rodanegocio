@@ -4,10 +4,10 @@ from django.views.generic import (
     ListView, DetailView, CreateView, UpdateView, TemplateView, DeleteView
 )
 from django.urls import reverse_lazy
-from .models import (Empresa, Evento, Rodada, Representante, Mesa,
+from .models import (Empresa, Evento, Rodada, Representante, Mesa, SolicitacaoAcesso,
                      Interesse, Categoria, EmpresaEvento, Endereco)
 from .forms import (RepresentanteForm, EmpresaForm, CategoriaForm,
-                    InteresseForm, EnderecoForm)
+                    InteresseForm, EnderecoForm, SolicitacaoAcessoForm)
 from django.views.generic import TemplateView, CreateView, UpdateView, DeleteView
 from django.core.exceptions import ValidationError
 from datetime import datetime, timedelta, time, date
@@ -22,6 +22,11 @@ from django.contrib import messages
 from django.db import IntegrityError
 from core.services.matchmaking import calcular_afinidade
 from core.utils import cor_para_vendedor
+from django.contrib.auth.decorators import permission_required, login_required
+from django.contrib.auth.models import Permission
+from django.shortcuts import get_object_or_404
+from django.utils import timezone
+from django.contrib.admin.views.decorators import staff_member_required
 
 # -----------------------------
 # Home
@@ -373,7 +378,7 @@ class InteresseListView(ListView):
     model = Interesse
     template_name = "core/interesse_list.html"
     context_object_name = "categorias"
-    paginate_by = 10  # Exibe 10 por página
+    paginate_by = 20  # Exibe 20 por página
     
     def get_queryset(self):
         qs = Categoria.objects.filter(interesse__isnull=False).distinct().order_by("nome")
@@ -1360,27 +1365,6 @@ def mesas_da_rodada(request, rodada_id):
         "mesas": mesas
     })
 
-'''
-def mesas_gerar(request, rodada_id):
-    rodada = get_object_or_404(Rodada, id=rodada_id)
-
-    if request.method == "POST":
-        qtd = int(request.POST.get("quantidade"))
-
-        # Evita duplicação
-        if rodada.mesas.exists():
-            messages.error(request, "As mesas já foram geradas para esta rodada.")
-            return redirect('core:mesas_da_rodada', rodada_id=rodada.id)
-
-        # Cria mesas numeradas
-        for i in range(1, qtd + 1):
-            Mesa.objects.create(rodada=rodada, numero=i)
-
-        messages.success(request, f"{qtd} mesas foram geradas com sucesso!")
-        return redirect('core:mesas_da_rodada', rodada_id=rodada.id)
-
-    return redirect('core:rodadas_list', evento_id=rodada.evento.id)
-''' 
 # -----------------------------
 # PAINEL DE RODADAS
 # -----------------------------
