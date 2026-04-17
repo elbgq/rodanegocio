@@ -36,8 +36,11 @@ class HomeView(TemplateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
 
+        # Lista de eventos para exibir os cards
+        context['evento'] = Evento.objects.all().order_by('-data')
+        
         # Pegamos todas as rodadas
-        context['rodadas'] = Rodada.objects.all().order_by('evento__data', 'inicio_ro')
+        # context['rodadas'] = Rodada.objects.all().order_by('evento__data', 'inicio_ro')
         return context
 
 # -----------------------------

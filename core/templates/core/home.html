@@ -20,20 +20,20 @@
         </a>
     </div>
 </div>
-
-<h3 class="text-primary fw-bold">Painel de Rodadas </h3>
-<h6 class="text-primary fw-bold">Acesso rápido </h6>
+ 
+<h3 class="text-primary fw-bold">Painel de Agendas </h3>
+<h6 class="text-primary fw-bold">Acesso rápido aos eventos </h6>
     <div class="row">
-        {% for r in rodadas %}
+        {% for e in evento %}
             <div class="col-md-6">
                 <div class="card mb-3">
                     <div class="card-body">
-                        <h5 class="card-title text-primary fw-bold">{{ r.evento.nome }} - {{ r.nome }}</h5>
+                        <h5 class="card-title text-primary fw-bold">{{ e.nome }} </h5>
                         <p class="card-text">
-                            {{ r.evento.data|date:"d/m/Y" }} — {{ r.inicio_ro|time:"H:i" }} às {{ r.fim_ro|time:"H:i" }}
+                            <strong>Data:</strong> {{ e.data|date:"d/m/Y" }} - <strong>Local:</strong> {{ e.local }}
                         </p>
-                        <a href="{% url 'core:painel_rodada' r.id %}" class="btn btn-outline-primary">
-                            Acessar Painel
+                        <a href="{% url 'core:rodadas_relatorio' e.id %}" class="btn btn-outline-primary">
+                            Abrir Agenda
                         </a>
                     </div>
                 </div>
