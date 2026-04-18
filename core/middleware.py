@@ -1,7 +1,7 @@
 from django.shortcuts import redirect
 from django.urls import reverse
 
-'''
+
 class RodanegociosProtectionMiddleware:
     def __init__(self, get_response):
         self.get_response = get_response
@@ -10,19 +10,10 @@ class RodanegociosProtectionMiddleware:
 
         caminho = request.path
         
-        # Permite logout SEM interferência
-        if caminho.startswith("/accounts/logout"):
-            return self.get_response(request)
-        
-        # URLs liberadas SEM restrição
-        urls_livres = [
-           "/",
-            "/accounts/login/",
-            "/solicitar-acesso/",
-            "/admin/login/",
-        ]
-
-        if caminho in urls_livres:
+        # ---------------------------
+        # A) Libera a página de acesso (senha)
+        # ---------------------------
+        if caminho.startswith("/acesso/"):
             return self.get_response(request)
 
         # ---------------------------
@@ -32,10 +23,10 @@ class RodanegociosProtectionMiddleware:
             return self.get_response(request)
 
         # ---------------------------
-        # C) Exige login
+        # C) Se não tem sessão, redireciona para /acesso/
         # ---------------------------
-        if not request.user.is_authenticated:
-            return redirect("/accounts/login/")
+        if not request.session.get("acesso_rodanegocios"):
+            return redirect("/acesso/")
 
         # ---------------------------
         # D) Staff tem acesso total
@@ -44,14 +35,13 @@ class RodanegociosProtectionMiddleware:
             return self.get_response(request)
 
         # ---------------------------
-        # E) Rotas que exigem permissão
+        # E) Proteção específica para /rodanegocios/
         # ---------------------------
         if caminho.startswith("/rodanegocios/"):
-            if not request.user.has_perm("core.acesso_rodanegocios"):
-                return redirect(reverse("core:acesso_negado"))
+            # Aqui você pode colocar regras extras se quiser
+            pass
 
         # ---------------------------
-        # F) Rotas normais (permitidas)
+        # F) Demais rotas liberadas
         # ---------------------------
         return self.get_response(request)
-'''

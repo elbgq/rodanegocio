@@ -27,6 +27,7 @@ DEBUG = True
 
 ALLOWED_HOSTS = ['rodanegocio-eloibgq.pythonanywhere.com', 'localhost', '127.0.0.1']
 
+RODANEGOCIOS_PASSWORD = "rodanegocios123"
 
 # Application definition
 INSTALLED_APPS = [
@@ -47,7 +48,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    #'core.middleware.RodanegociosProtectionMiddleware',
+    'core.middleware.RodanegociosProtectionMiddleware',
     
 ]
 

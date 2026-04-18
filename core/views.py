@@ -26,6 +26,7 @@ from django.contrib.auth.models import Permission
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from django.contrib.admin.views.decorators import staff_member_required
+from django.conf import settings
 
 # -----------------------------
 # Home
@@ -50,10 +51,15 @@ class HomeView(TemplateView):
 SENHA_RODANEGOCIOS = "rodanegocios123"  # você define a senha aqui
 
 def acesso_rodanegocios(request):
+    
+    # Sempre limpa o acesso ao abrir a página de senha
+    request.session.pop("acesso_rodanegocios", None)
+    
     if request.method == "POST":
-        senha_digitada = request.POST.get("senha")
-
-        if senha_digitada == SENHA_RODANEGOCIOS:
+        senha_digitada = (request.POST.get("senha") or "").strip()
+        senha_correta = getattr(settings, "RODANEGOCIOS_PASSWORD", "rodanegocios123")
+        
+        if senha_digitada == senha_correta:
             request.session["acesso_rodanegocios"] = True
             return redirect("core:home")  # ajuste para sua URL real
 
@@ -63,8 +69,22 @@ def acesso_rodanegocios(request):
 
     return render(request, "core/digite_senha.html")
 
+from django.shortcuts import redirect
+from django.contrib.auth import logout
+
+def sair(request):
+    # Remove o acesso especial
+    request.session.pop("acesso_rodanegocios", None)
+
+    # Faz logout do Django (caso esteja logado)
+    logout(request)
+
+    # Redireciona para a tela de senha
+    return redirect("/acesso/")
+
+
 # -----------------------------
-# EMPRESA
+# EMPRESA 
 # -----------------------------
 class EmpresaListView(ListView):
     model = Empresa
