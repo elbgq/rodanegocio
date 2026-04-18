@@ -92,17 +92,17 @@
                         {% if empresa.id in inscritas %}checked{% endif %}>
                     {{ empresa.nome }}
                 </span>
-
-                <small class="text-muted">
+                <small class="{% if empresa.interesses.count < 10 %}text-danger fw-bold{% else %}text-success fw-bold{% endif %}">
                     {{ empresa.interesses.count }} interesse{{ empresa.interesses.count|pluralize }}
                 </small>
+                
             </label>
 
             <span class="badge bg-light text-dark">
                 {{ empresa.modalidade|title }}
             </span>
         </li>
-        {% endfor %}
+        {% endfor %} 
     </ul>
     
     <button class="btn btn-primary">Salvar Participantes</button>

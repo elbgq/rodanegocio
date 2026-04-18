@@ -37,7 +37,7 @@ class HomeView(TemplateView):
         context = super().get_context_data(**kwargs)
 
         # Lista de eventos para exibir os cards
-        context['evento'] = Evento.objects.all().order_by('-data')
+        context['evento'] = Evento.objects.all().order_by('data')
         
         # Pegamos todas as rodadas
         # context['rodadas'] = Rodada.objects.all().order_by('evento__data', 'inicio_ro')
@@ -72,7 +72,7 @@ class EmpresaListView(ListView):
     template_name = 'core/empresa_list.html'
     context_object_name = 'empresas'
     paginate_by = 15  # Exibe 20 por página
-    ordering = ["nome"]  # Ordena por categoria e depois por nome
+    ordering = None  # Sem ordenação fixa
 
     def get_queryset(self):
         qs = super().get_queryset()
@@ -81,14 +81,38 @@ class EmpresaListView(ListView):
         if termo:
             qs = qs.filter(nome__icontains=termo)
 
+        # 🔽 Ordenação
+        sort = self.request.GET.get("sort", "nome")
+
+        allowed = {
+            "nome": "nome",
+            "-nome": "-nome",
+            "modalidade": "modalidade",
+            "-modalidade": "-modalidade",
+            "interesses": "interesses__nome",
+            "-interesses": "-interesses__nome",
+        }
+
+        order = allowed.get(sort, "nome")
+        qs = qs.order_by(order).distinct()
+
         return qs
- 
+    
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        
         # Campo de busca
         context["termo"] = self.request.GET.get("q", "")
+        
         # Lista de interesses ordenada por nome
         context["interesses"] = Interesse.objects.all().order_by("nome")
+        
+        # 🔽 Enviar o sort atual para o template
+        context["sort"] = self.request.GET.get("sort", "nome")
+        
+        # 🔽 AQUI ESTÃO OS CONTADORES QUE FALTAVAM
+        context["compradores"] = Empresa.objects.filter(modalidade="COMPRADOR").count()
+        context["vendedores"] = Empresa.objects.filter(modalidade="VENDEDOR").count()
         
         return context
 
@@ -520,7 +544,8 @@ class RepresentanteDeleteView(DeleteView):
         return reverse_lazy("core:empresa_detail", kwargs={"pk": self.object.empresa.id})
 
 # -----------------------------
-def representante_importar(request):
+def representante_importar(request, empresa_id):
+    empresa = get_object_or_404(Empresa, id=empresa_id)
     if request.method == "POST":
         # Limpa mensagens antigas
         storage = get_messages(request)
@@ -603,7 +628,9 @@ def representante_importar(request):
 
         return redirect("core:representante_importar")
 
-    return render(request, "core/representante_importar.html")
+    return render(request, "core/representante_importar.html", {
+        "empresa": empresa
+    })
 
 # -----------------------------
 # EVENTO

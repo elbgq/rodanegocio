@@ -35,7 +35,7 @@ urlpatterns = [
     name="representante_editar"),
     path("representantes/<int:pk>/excluir/", views.RepresentanteDeleteView.as_view(),
     name="representante_excluir"),
-    path("representantes/importar/", views.representante_importar, name="representante_importar"),
+    path("representantes/importar/<int:empresa_id>/", views.representante_importar, name="representante_importar"),
     
     # EVENTOS
     path('eventos/', views.EventoListView.as_view(), name='evento_list'),
