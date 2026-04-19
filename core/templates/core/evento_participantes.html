@@ -90,7 +90,9 @@
                         class="chk-empresa me-2"
                         data-modalidade="{{ empresa.modalidade|upper }}"
                         {% if empresa.id in inscritas %}checked{% endif %}>
-                    {{ empresa.nome }}
+                    <a href="{% url 'core:empresa_update' empresa.id %}?next={{ request.path }}">
+                        {{ empresa.nome }}
+                    </a>
                 </span>
                 <small class="{% if empresa.interesses.count < 10 %}text-danger fw-bold{% else %}text-success fw-bold{% endif %}">
                     {{ empresa.interesses.count }} interesse{{ empresa.interesses.count|pluralize }}

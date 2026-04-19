@@ -199,6 +199,10 @@ class EmpresaUpdateView(UpdateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
 
+        # Captura o next da URL
+        next_url = self.request.GET.get("next")
+        context["next"] = next_url
+        
         empresa = self.object
         endereco = empresa.endereco or Endereco()
         
@@ -224,6 +228,7 @@ class EmpresaUpdateView(UpdateView):
     
     def form_valid(self, form):
         empresa = form.save(commit=False)
+        next_url = self.request.POST.get("next")  # ← recupera o next enviado no POST
         # Endereço atual ou novo
         endereco = empresa.endereco or Endereco()
 
@@ -240,7 +245,7 @@ class EmpresaUpdateView(UpdateView):
             empresa.save()
             form.save_m2m()
             messages.success(self.request, "Empresa atualizada com sucesso.")
-            return redirect(self.success_url)
+            return redirect(next_url or self.success_url)
         
         # Se o usuário preencheu algo → validar endereço
         if not form_endereco.is_valid():
@@ -257,7 +262,7 @@ class EmpresaUpdateView(UpdateView):
             empresa.save()
             form.save_m2m()
             messages.success(self.request, "Empresa atualizada com sucesso.")
-            return redirect(self.success_url)
+            return redirect(next_url or self.success_url)
 
         except Exception as e:
             messages.error(self.request, f"Erro ao salvar empresa: {e}")
