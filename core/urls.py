@@ -72,5 +72,4 @@ urlpatterns = [
     path("acesso/", views.acesso_rodanegocios, name="acesso_rodanegocios"),
     path("sair/", views.sair, name="sair"),
 
-
 ]
