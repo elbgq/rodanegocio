@@ -13,7 +13,6 @@
 <h2 class="mb-4">Gerenciar Participantes — {{ evento.nome }}</h2>
 <p><strong>Data:</strong> {{ evento.data }}</p>
 <p><strong>Local:</strong> {{ evento.local }}</p>
-<p><strong>Descrição:</strong> {{ evento.descricao }}</p>
 
 <!-- Estatísticas -->
 <div class="row mb-4">
@@ -90,14 +89,14 @@
                         class="chk-empresa me-2"
                         data-modalidade="{{ empresa.modalidade|upper }}"
                         {% if empresa.id in inscritas %}checked{% endif %}>
-                    <a href="{% url 'core:empresa_update' empresa.id %}?next={{ request.path }}">
-                        {{ empresa.nome }}
-                    </a>
+                        <a href="{% url 'core:empresa_update' empresa.id %}?next={{ request.path }}">
+                            {{ empresa.nome }}
+                        </a>
                 </span>
                 <small class="{% if empresa.interesses.count < 10 %}text-danger fw-bold{% else %}text-success fw-bold{% endif %}">
                     {{ empresa.interesses.count }} interesse{{ empresa.interesses.count|pluralize }}
                 </small>
-                
+                 
             </label>
 
             <span class="badge bg-light text-dark">
