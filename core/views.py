@@ -806,12 +806,15 @@ def relatorio_inscritos(request, evento_id):
 
     return render(request, "core/evento_relatorio_inscritos.html", context)
 
-# -----------------------------
-# RANKING DE AFINIDADES
-# -----------------------------
+# ====================================
+# Esta função gera e exibe o ranking de afinidade entre compradores e vendedores.
+# Apenas calcula afinidades e prepara dados para exibição.
+# ====================================
 def ranking_afinidades(request, evento_id):
+    # Carrega o evento
     evento = get_object_or_404(Evento, id=evento_id)
 
+    # Carrega compradores e vendedores participantes do evento
     compradores = Empresa.objects.filter(
         modalidade="COMPRADOR",
         empresaevento__evento=evento,
@@ -830,7 +833,10 @@ def ranking_afinidades(request, evento_id):
         top_n = min(int(params["qtd_rodadas"]), vendedores.count())
     else:
         top_n = vendedores.count()  # fallback: usa todos
-        
+    
+    # Monta o ranking de afinidades: para cada comprador, uma lista de vendedores
+    # ordenada por afinidade. O ranking é uma lista de dicionários, onde cada dicionário
+    # tem o comprador e a lista de vendedores ordenada por afinidade.
     ranking = []
 
     for comprador in compradores:
@@ -843,17 +849,20 @@ def ranking_afinidades(request, evento_id):
         # Ordenar do maior para o menor score
         lista.sort(key=lambda x: x[1], reverse=True)
 
+        # Adiciona ao ranking final apenas os top N vendedores para este comprador.
         ranking.append({
             "comprador": comprador,
             "melhores": lista  # top N vendedores
         })
 
+    # Prepara o contexto para o template, incluindo o ranking e o top_n para exibição.
     context = {
         "evento": evento,
         "ranking": ranking,
         "top_n": top_n,
     }
 
+    # Renderiza a página HTML
     return render(request, "core/ranking_afinidades.html", context)
 
 # ========================================================
@@ -886,9 +895,16 @@ def gerar_ranking(evento, top_n):
     return ranking
 
 # ========================================================
+# A finalidade desta função é preencher as rodadas alocando os vendedores mais afinados com
+# cada comprador, respeitando as regras de não repetir vendedor para o mesmo comprador
+# e tentando evitar repetições dentro da mesma rodada.
+# ========================================================
 def gerar_rodadas_por_ranking(evento, qtd_rodadas):
+    # Gera o ranking completo (todos os vendedores ordenados por afinidade para cada comprador),
+    # a partir da função gerar_ranking.
     ranking = gerar_ranking(evento, qtd_rodadas)
 
+    # Carrega compradores e vendedores
     compradores = Empresa.objects.filter(
         modalidade="COMPRADOR",
         empresaevento__evento=evento,
@@ -903,31 +919,36 @@ def gerar_rodadas_por_ranking(evento, qtd_rodadas):
     
     cores_vendedores = {v.id: cor_para_vendedor(v.id) for v in vendedores}
 
+    # Carrega as rodadas já criadas, mas não cria novas rodadas aqui. A função criar_rodadas
+    # deve ser chamada antes desta função para criar as rodadas com os horários.
     rodadas = Rodada.objects.filter(evento=evento).order_by("inicio_ro")
 
     # 🔥 Agora controlamos vendedores usados POR COMPRADOR
     vendedores_usados_por_comprador = {c.id: set() for c in compradores}
 
-    # Para cada rodada
+    # Para cada rodada, tentamos alocar os vendedores mais afinados para cada comprador,
+    # respeitando as regras de alocação.
     for rodada_idx, rodada in enumerate(rodadas):
         vendedores_usados_na_rodada = set()
 
-        # 🔥 embaralha compradores para evitar prioridade injusta
+        # Embaralha compradores para evitar prioridade injusta
         compradores_lista = compradores[:]
         random.shuffle(compradores_lista)
         
-        # Para cada comprador
+        # Para cada comprador nesta rodada, tentamos alocar o vendedor mais afinado possível,
+        # seguindo as regras já definidas.
         for comprador in compradores_lista:
             lista = ranking[comprador.id]
 
             # 1) vendedor ideal para esta rodada
             vendedor_ideal = lista[rodada_idx]
 
-            # 🔥 Verifica se o vendedor já foi usado por este comprador
-            
+            # Verifica se o vendedor já foi usado por este comprador ou já alocado nesta
+            # rodada (para evitar repetições). Se não, aloca o vendedor ideal.
             if (vendedor_ideal.id not in vendedores_usados_por_comprador[comprador.id]
                 and vendedor_ideal.id not in vendedores_usados_na_rodada):
-                    
+                
+                # Cria a mesa com o vendedor ideal para este comprador e esta rodada.
                 Mesa.objects.create(
                     rodada=rodada,
                     numero=len(vendedores_usados_na_rodada) + 1,
