@@ -11,6 +11,19 @@ from django.contrib.auth.models import User
 # ============================
 # PERMISSÕES DE ACESSO
 # ============================
+class ConfiguracaoSistema(models.Model):
+    chave = models.CharField(max_length=100, unique=True)
+    valor = models.CharField(max_length=255)
+
+    def __str__(self):
+        return f"{self.chave}: {self.valor}"
+    
+    def save(self, *args, **kwargs):
+        self.chave = "senha_rodanegocios"
+        super().save(*args, **kwargs)
+
+
+
 class Meta:
     permissions = [
         ("acesso_rodanegocios", "Pode acessar o sistema Rodanegocios"),

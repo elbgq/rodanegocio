@@ -69,7 +69,8 @@ urlpatterns = [
     path('rodada/<int:rodada_id>/painel/', views.painel_da_rodada, name='painel_rodada'),
     
     # Acesso
+    path("configuracoes/", views.configuracao_sistema_view, name="configuracao_sistema"),
     path("acesso/", views.acesso_rodanegocios, name="acesso_rodanegocios"),
     path("sair/", views.sair, name="sair"),
-
+    path("reset-senha/", views.reset_senha_rodanegocios, name="reset_senha"),
 ]

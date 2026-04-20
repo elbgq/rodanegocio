@@ -27,6 +27,8 @@ from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from django.contrib.admin.views.decorators import staff_member_required
 from django.conf import settings
+from django.contrib.auth import logout
+from .utils import get_senha_rodanegocios, set_senha_rodanegocios
 
 # -----------------------------
 # Home
@@ -47,6 +49,26 @@ class HomeView(TemplateView):
 # -----------------------------
 # ACESSO
 # -----------------------------
+# Configurações do sistema (ex: senha do Rodanegocios)
+def configuracao_sistema_view(request):
+
+    contexto = {}
+
+    if request.method == "POST":
+        senha_atual = request.POST.get("senha_atual", "").strip()
+        nova_senha = request.POST.get("nova_senha", "").strip()
+        confirmar = request.POST.get("confirmar", "").strip()
+
+        if senha_atual != get_senha_rodanegocios():
+            contexto["erro"] = "Senha atual incorreta."
+        elif nova_senha != confirmar:
+            contexto["erro"] = "A nova senha e a confirmação não coincidem."
+        else:
+            set_senha_rodanegocios(nova_senha)
+            contexto["sucesso"] = "Senha alterada com sucesso!"
+
+    return render(request, "core/configuracao_sistema.html", contexto)
+
 
 SENHA_RODANEGOCIOS = "rodanegocios123"  # você define a senha aqui
 
@@ -57,11 +79,11 @@ def acesso_rodanegocios(request):
     
     if request.method == "POST":
         senha_digitada = (request.POST.get("senha") or "").strip()
-        senha_correta = getattr(settings, "RODANEGOCIOS_PASSWORD", "rodanegocios123")
+        senha_correta = get_senha_rodanegocios()
         
         if senha_digitada == senha_correta:
             request.session["acesso_rodanegocios"] = True
-            return redirect("core:home")  # ajuste para sua URL real
+            return redirect("core:home")  # ajuste para sua URL inicial
 
         return render(request, "core/digite_senha.html", {
             "erro": "Senha incorreta."
@@ -69,9 +91,7 @@ def acesso_rodanegocios(request):
 
     return render(request, "core/digite_senha.html")
 
-from django.shortcuts import redirect
-from django.contrib.auth import logout
-
+# Função para sair (limpa a sessão de acesso)
 def sair(request):
     # Remove o acesso especial
     request.session.pop("acesso_rodanegocios", None)
@@ -82,6 +102,34 @@ def sair(request):
     # Redireciona para a tela de senha
     return redirect("/acesso/")
 
+# Função para resetar a senha do Rodanegocios
+def reset_senha_rodanegocios(request):
+    modo = request.GET.get("modo")  # pode ser "esqueci"
+    contexto = {"modo": modo}
+    
+    if request.method == "POST":
+        senha_atual = request.POST.get("senha_atual", "").strip()
+        nova_senha = request.POST.get("nova_senha", "").strip()
+        confirmar = request.POST.get("confirmar", "").strip()
+
+        senha_correta = get_senha_rodanegocios()
+        
+        # 1. Se veio do "esqueci a senha", não exige senha atual
+        if modo != "esqueci" and senha_atual != senha_correta:
+            contexto["erro"] = "Senha atual incorreta."
+            return render(request, "core/reset_senha.html", contexto)
+
+        # 2. Confere nova senha
+        if nova_senha != confirmar:
+            contexto["erro"] = "A nova senha e a confirmação não coincidem."
+            return render(request, "core/reset_senha.html", contexto)
+
+        # 3. Grava a nova senha
+        set_senha_rodanegocios(nova_senha)
+        contexto["sucesso"] = "Senha alterada com sucesso!"
+        return render(request, "core/reset_senha.html", contexto)
+
+    return render(request, "core/reset_senha.html", contexto)
 
 # -----------------------------
 # EMPRESA 
@@ -228,7 +276,7 @@ class EmpresaUpdateView(UpdateView):
     
     def form_valid(self, form):
         empresa = form.save(commit=False)
-        next_url = self.request.POST.get("next")  # ← recupera o next enviado no POST
+        next_url = self.request.POST.get("next") or None # ← recupera o next enviado no POST
         # Endereço atual ou novo
         endereco = empresa.endereco or Endereco()
 

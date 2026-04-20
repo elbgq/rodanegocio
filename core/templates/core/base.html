@@ -13,27 +13,51 @@
 </head>
 <body>
 
-    <nav class="navbar navbar-expand-lg navbar-dark" style="background-color: #2E8B57;">
-        <div class="container">
-            <a class="navbar-brand text-primary fw-bold" href="{% url 'core:home' %}">
-                Reunião de Negócios
-            </a>
+<nav class="navbar navbar-expand-lg navbar-dark" style="background-color: #2E8B57;">
+    <div class="container">
 
-            <div>
-                <a class="nav-link d-inline text-primary" href="{% url 'core:empresa_list' %}">Empresas</a>
-                <a class="nav-link d-inline text-primary" href="{% url 'core:evento_list' %}">Eventos</a>
-                <!-- Botão de sair -->
+        <!-- Marca -->
+        <a class="navbar-brand text-primary fw-bold" href="{% url 'core:home' %}">
+            Reunião de Negócios
+        </a>
+
+        <!-- Botão mobile -->
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#menuPrincipal">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+
+        <!-- Menu -->
+        <div class="collapse navbar-collapse" id="menuPrincipal">
+            <ul class="navbar-nav ms-auto">
+
+                <li class="nav-item">
+                    <a class="nav-link text-primary" href="{% url 'core:empresa_list' %}">Empresas</a>
+                </li>
+
+                <li class="nav-item">
+                    <a class="nav-link text-primary" href="{% url 'core:evento_list' %}">Eventos</a>
+                </li>
+
                 {% if request.session.acesso_rodanegocios %}
-                <a class="nav-link d-inline text-danger fw-bold" href="{% url 'core:sair' %}">
-                    Sair
-                </a>
+                <li class="nav-item dropdown">
+                    <a class="nav-link text-primary dropdown-toggle" href="#" data-bs-toggle="dropdown">
+                        Conta
+                    </a>
+                    <ul class="dropdown-menu" style="background-color: #bdf1d9;">
+                        <li><a class="dropdown-item" href="{% url 'core:configuracao_sistema' %}">Configurações</a></li>
+                        <li><a class="dropdown-item" href="/reset-senha/">Alterar senha</a></li>
+                        <li><a class="dropdown-item" href="{% url 'core:sair' %}">Sair</a></li>
+                    </ul>
+                </li>
                 {% endif %}
-            </div>
-        </div>
-        
-    </nav>
 
-<div class="container">
+            </ul>
+        </div>
+
+    </div>
+</nav>
+
+<div class="container mt-4">
     {% block content %}
     {% endblock %}
 </div>

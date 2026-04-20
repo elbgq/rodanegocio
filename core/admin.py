@@ -1,8 +1,27 @@
 from django.contrib import admin
 from .models import Evento, Empresa, Representante, Mesa, Interesse, Rodada, EmpresaEvento
-from .forms import EmpresaForm
+from .forms import EmpresaForm, ConfiguracaoSistemaForm
 
-# Register your models here.
+
+from django.contrib import admin
+from .models import ConfiguracaoSistema
+
+# Configuração do admin para a senha do Rodanegocios
+@admin.register(ConfiguracaoSistema)
+class ConfiguracaoSistemaAdmin(admin.ModelAdmin):
+    form = ConfiguracaoSistemaForm
+    list_display = ("chave",)
+    search_fields = ("chave",)
+
+    # Impede exclusão acidental
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+    # Impede criação de novas chaves (mantém só 1 senha)
+    def has_add_permission(self, request):
+        return False
+
+
 @admin.register(Evento)
 class EventoAdmin(admin.ModelAdmin):
     list_display = ('nome', 'data', 'inicio_ev', 'termino_ev')

@@ -3,8 +3,19 @@ from .models import (Rodada, Representante, Empresa, Interesse, Categoria, Ender
 import re
 
 from django import forms
-from .models import Empresa
+from .models import Empresa, ConfiguracaoSistema
 from .models import SolicitacaoAcesso
+
+# Formulário para configurar a senha do Rodanegocios
+class ConfiguracaoSistemaForm(forms.ModelForm):
+    valor = forms.CharField(
+        label="Senha",
+        widget=forms.PasswordInput(render_value=True)
+    )
+
+    class Meta:
+        model = ConfiguracaoSistema
+        fields = ["valor"]
 
 
 class SolicitacaoAcessoForm(forms.ModelForm):
