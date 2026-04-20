@@ -128,7 +128,7 @@ gunicorn-error-log
 
 #Para login e permissoes
 core/accounts/
-core/migrations/0016_solicitacaoacesso.py
+
 core/templates/core/home_rodanegocios.html
 core/templates/core/solicitacao_enviada.html
 core/templates/core/solicitacoes_lista.html

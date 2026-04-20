@@ -7,7 +7,7 @@
 
     <!-- Bootstrap -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
     <!-- CSS customizado -->
     <link rel="stylesheet" href="{% static 'core/css/style.css' %}">
 </head>
@@ -18,41 +18,30 @@
 
         <!-- Marca -->
         <a class="navbar-brand text-primary fw-bold" href="{% url 'core:home' %}">
-            Reunião de Negócios
+            Rodadas de Negócios
         </a>
 
-        <!-- Botão mobile -->
-        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#menuPrincipal">
-            <span class="navbar-toggler-icon"></span>
+        {% if request.session.acesso_rodanegocios %}
+        
+        <!-- Botão mobile que abre o dropdown diretamente -->
+        <button class="navbar-toggler text-white border-1 ms-auto" type="button" data-bs-toggle="dropdown" data-bs-target="#menuConta">
+            <i class="bi bi-list" style="font-size: 1.8rem;"></i>
         </button>
 
-        <!-- Menu -->
-        <div class="collapse navbar-collapse" id="menuPrincipal">
-            <ul class="navbar-nav ms-auto">
+        <!-- Dropdown da Conta -->
+        <div class="dropdown ms-auto">
+            <button class="btn text-primary dropdown-toggle d-none d-lg-block" id="menuConta" data-bs-toggle="dropdown">
+                Conta
+            </button>
 
-                <li class="nav-item">
-                    <a class="nav-link text-primary" href="{% url 'core:empresa_list' %}">Empresas</a>
-                </li>
-
-                <li class="nav-item">
-                    <a class="nav-link text-primary" href="{% url 'core:evento_list' %}">Eventos</a>
-                </li>
-
-                {% if request.session.acesso_rodanegocios %}
-                <li class="nav-item dropdown">
-                    <a class="nav-link text-primary dropdown-toggle" href="#" data-bs-toggle="dropdown">
-                        Conta
-                    </a>
-                    <ul class="dropdown-menu" style="background-color: #bdf1d9;">
-                        <li><a class="dropdown-item" href="{% url 'core:configuracao_sistema' %}">Configurações</a></li>
-                        <li><a class="dropdown-item" href="/reset-senha/">Alterar senha</a></li>
-                        <li><a class="dropdown-item" href="{% url 'core:sair' %}">Sair</a></li>
-                    </ul>
-                </li>
-                {% endif %}
-
+            <ul class="dropdown-menu dropdown-menu-end" style="background-color: #bdf1d9;">
+                <li><a class="dropdown-item" href="{% url 'core:configuracao_sistema' %}">Configurações</a></li>
+                <li><a class="dropdown-item" href="/reset-senha/">Alterar senha</a></li>
+                <li><a class="dropdown-item" href="{% url 'core:sair' %}">Sair</a></li>
             </ul>
         </div>
+
+        {% endif %}
 
     </div>
 </nav>
@@ -64,6 +53,7 @@
 
 <!-- Bootstrap JS -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
 
 </body>
 </html>
