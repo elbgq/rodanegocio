@@ -2,8 +2,10 @@
 {% load static %}
 
 {% block content %}
- 
-<h4 class="mb-2">Agenda de Rodadas - {{ evento.nome }}</h4>
+
+<h2>Detalhes — {{ evento.nome }}</h2>
+<h4>Agenda de Rodadas</h4>
+
 <p><strong>Data:</strong> {{ evento.data }} - <strong>Local:</strong> {{ evento.local }}</p>
 
 <table class="table table-bordered table-striped text-center align-middle">

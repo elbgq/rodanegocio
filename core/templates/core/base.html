@@ -20,29 +20,7 @@
         <a class="navbar-brand text-primary fw-bold" href="{% url 'core:home' %}">
             Rodadas de Negócios
         </a>
-
-        {% if request.session.acesso_rodanegocios %}
         
-        <!-- Botão mobile que abre o dropdown diretamente -->
-        <button class="navbar-toggler text-white border-1 ms-auto" type="button" data-bs-toggle="dropdown" data-bs-target="#menuConta">
-            <i class="bi bi-list" style="font-size: 1.8rem;"></i>
-        </button>
-
-        <!-- Dropdown da Conta -->
-        <div class="dropdown ms-auto">
-            <button class="btn text-primary dropdown-toggle d-none d-lg-block" id="menuConta" data-bs-toggle="dropdown">
-                Conta
-            </button>
-
-            <ul class="dropdown-menu dropdown-menu-end" style="background-color: #bdf1d9;">
-                <li><a class="dropdown-item" href="{% url 'core:configuracao_sistema' %}">Configurações</a></li>
-                <li><a class="dropdown-item" href="/reset-senha/">Alterar senha</a></li>
-                <li><a class="dropdown-item" href="{% url 'core:sair' %}">Sair</a></li>
-            </ul>
-        </div>
-
-        {% endif %}
-
     </div>
 </nav>
 

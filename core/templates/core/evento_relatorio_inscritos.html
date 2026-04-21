@@ -2,8 +2,8 @@
 {% block content %}
 
 
-
-<h2>Relatório de Empresas Inscritas — {{ evento.nome }}</h2>
+<h2>Detalhes — {{ evento.nome }}</h2>
+<h4>Relatório de Empresas Inscritas</h4>
 <p><strong>Data:</strong> {{ evento.data }}</p>
 <p><strong>Local:</strong> {{ evento.local }}</p>
 <a href="{% url 'core:evento_detail' evento.id %}" class="btn btn-secondary">Voltar</a>
