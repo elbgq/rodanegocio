@@ -774,6 +774,7 @@ def evento_participantes(request, evento_id):
     # ==============================
     
     # 1. Empresas cadastradas mas não inscritas
+    '''
     if total_inscritas < total_empresas:
         messages.warning(
             request,
@@ -785,6 +786,7 @@ def evento_participantes(request, evento_id):
             request,
             "Para gerar rodadas, é necessário ter pelo menos 1 comprador e 1 vendedor inscritos."
         )
+        '''
     # ============================
     # PROCESSAMENTO DO FORMULÁRIO
     # ============================

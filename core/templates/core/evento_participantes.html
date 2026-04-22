@@ -1,13 +1,16 @@
 {% extends "core/base.html" %}
 {% load static %}
 {% block content %}
-
+ 
 {% if messages %}
-    {% for message in messages %}
-        <div class="alert alert-{{ message.tags }}">
-            {{ message }}
-        </div>
-    {% endfor %}
+    <div class="mt-3">
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                <i class="bi bi-info-circle"></i> {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        {% endfor %}
+    </div>
 {% endif %}
 
 <h2 class="mb-4">Gerenciar Participantes — {{ evento.nome }}</h2>
@@ -63,6 +66,14 @@
             {{ percentual }}%
         </div>
     </div>
+</div>
+<!-- Alertas -->
+<div class="alert alert-info"> 
+    <p style="margin: 0;">Recomendações:</p>
+    <p style="margin: 0;">- Marque as empresas a serem inscritas neste evento;</p>
+    <p style="margin: 0;">- Cada empresa deve ter pelo menos 10 interesses marcados. Se precisar, edite-as;</p>
+    <p style="margin: 0;">- Para gerar rodadas, é necessário 1 comprador e 1 vendedor inscritos;</p>
+    <p style="margin: 0;">- A geração das rodadas so pode ocorrer após salvar a inscrição.</p>
 </div>
 
 <!-- Busca -->
