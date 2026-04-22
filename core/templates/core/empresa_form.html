@@ -154,6 +154,30 @@
             </div>
 
         {% endfor %}
+    
+{% if form.instance.id %}
+    <h4 class="form-label text-primary mb-2">Relacionamentos</h4>
+
+    <a href="{% url 'core:empresa_relacionamentos' form.instance.id %}" class="btn btn-outline-primary">
+        Gerenciar relacionamentos desta empresa
+    </a>
+    {% if relacionamentos %}
+        <ul class="mt-3">
+            {% for rel in relacionamentos %}
+                <li>
+                    {% if rel.empresa_a == empresa %}
+                        {{ rel.empresa_b.nome }}
+                    {% else %}
+                        {{ rel.empresa_a.nome }}
+                    {% endif %}
+                    — <em>{{ rel.get_tipo_relacao_display }}</em>
+                </li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p class="text-muted mt-2">Nenhum relacionamento cadastrado.</p>
+    {% endif %}
+{% endif %}
 
     </div>
 

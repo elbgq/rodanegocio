@@ -1,6 +1,7 @@
 from core.models import Empresa, Rodada, Mesa
 from django.db import transaction
 from datetime import timedelta, datetime
+from core.utils import empresas_tem_relacao
 
 #====================================
 # Esta função calcula a afinidade entre duas pessoas com base nos interesses que elas
@@ -21,6 +22,11 @@ def gerar_pares_para_rodada(compradores, vendedores_disponiveis, qtd_mesas):
     #Criação da matriz de afinidades e calcula a afinidade entre eles
     for c in compradores:
         for e in vendedores_disponiveis:
+            
+            # Trava de ralacionamento entre comprador e vendedor
+            if empresas_tem_relacao(c.id, e.id):
+                continue  # ignora este par
+            
             score = calcular_afinidade(c, e)
             matriz.append((c, e, score))
             
@@ -148,7 +154,7 @@ def gerar_todas_as_rodadas(
 
         # Atualiza horário para próxima rodada
         horario_atual = fim_dt + timedelta(minutes=intervalo_minutos)
-
+ 
         # Pausa programada
         if pausa_cada > 0 and (numero_rodada - 1) % pausa_cada == 0:
             horario_atual += timedelta(minutes=pausa_duracao)

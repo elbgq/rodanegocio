@@ -1,10 +1,8 @@
 from django.db import models
 from django.core.exceptions import ValidationError
-from datetime import timedelta
 from django.urls import reverse_lazy
 from django.utils import timezone
-from django.core.exceptions import ValidationError
-from datetime import datetime, time
+from datetime import time
 from localflavor.br.models import BRCNPJField
 from django.contrib.auth.models import User
 
@@ -209,3 +207,36 @@ class Mesa(models.Model):
     def __str__(self):
         return f"Mesa {self.numero}"
 
+# ==============================
+# RELACIONAMENTO ENTRE EMPRESAS
+# ==============================
+class RelacionamentoEmpresa(models.Model):
+    TIPOS = [
+        ("CLIENTE", "Cliente"),
+        ("FORNECEDOR", "Fornecedor"),
+        ("PARCEIRO", "Parceiro"),
+        ("NEGOCIARAM", "Já negociaram"),
+    ]
+
+    empresa_a = models.ForeignKey(
+        Empresa, on_delete=models.CASCADE, related_name="relacoes_como_a"
+    )
+    empresa_b = models.ForeignKey(
+        Empresa, on_delete=models.CASCADE, related_name="relacoes_como_b"
+    )
+
+    tipo_relacao = models.CharField(max_length=20, choices=TIPOS)
+    ativo = models.BooleanField(default=True)
+    data_registro = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ("empresa_a", "empresa_b")
+
+    def save(self, *args, **kwargs):
+        # Garante que empresa_a_id < empresa_b_id para evitar duplicidade
+        if self.empresa_a_id > self.empresa_b_id:
+            self.empresa_a, self.empresa_b = self.empresa_b, self.empresa_a
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.empresa_a} ↔ {self.empresa_b} ({self.tipo_relacao})"

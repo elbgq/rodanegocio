@@ -3,8 +3,8 @@ from .models import (Rodada, Representante, Empresa, Interesse, Categoria, Ender
 import re
 
 from django import forms
-from .models import Empresa, ConfiguracaoSistema
-from .models import SolicitacaoAcesso
+from .models import Empresa, ConfiguracaoSistema, RelacionamentoEmpresa, SolicitacaoAcesso
+
 
 # Formulário para configurar a senha do Rodanegocios
 class ConfiguracaoSistemaForm(forms.ModelForm):
@@ -81,10 +81,9 @@ class InteresseForm(forms.ModelForm):
     
 class RodadaForm(forms.ModelForm):
     data = forms.DateField(
-        input_formats=["%Y-%m-%d"],
-        widget=forms.DateInput(format="%Y-%m-%d", attrs={"type": "date"}),
-        localize=False
-    )
+        input_formats=["%Y-%m-%d"], 
+        widget=forms.DateInput(format="%Y-%m-%d", attrs={"type": "date"}), 
+        localize=False)
 
     class Meta:
         model = Rodada
@@ -124,3 +123,24 @@ class RepresentanteForm(forms.ModelForm):
             raise forms.ValidationError("Informe um telefone válido. Ex: (11) 98765-4321")
 
         return telefone
+
+from django import forms
+from .models import RelacionamentoEmpresa, Empresa
+
+class RelacionamentoForm(forms.ModelForm):
+ 
+    class Meta:
+        model = RelacionamentoEmpresa
+        fields = ["empresa_b", "tipo_relacao",]
+
+    def __init__(self, *args, **kwargs):
+        empresa_atual = kwargs.pop("empresa_atual", None)
+        super().__init__(*args, **kwargs)
+
+        qs = Empresa.objects.all().order_by("nome")
+
+        if empresa_atual:
+            qs = qs.exclude(id=empresa_atual.id)
+
+        self.fields["empresa_b"].queryset = qs
+        

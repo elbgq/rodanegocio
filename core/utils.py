@@ -1,6 +1,6 @@
 import random
 import colorsys
-from .models import ConfiguracaoSistema
+from .models import ConfiguracaoSistema, RelacionamentoEmpresa
 
 # Função para gerar uma cor única para cada vendedor
 def cor_para_vendedor(vendedor_id):
@@ -29,4 +29,12 @@ def set_senha_rodanegocios(nova_senha):
         defaults={"valor": nova_senha}
     )
 
-
+# Função para verificar relacionamentos entre compradores e vendedores
+def empresas_tem_relacao(empresa1_id, empresa2_id):
+    a, b = sorted([empresa1_id, empresa2_id])
+    return RelacionamentoEmpresa.objects.filter(
+        empresa_a_id=a,
+        empresa_b_id=b,
+        ativo=True
+    ).exists()
+ 

@@ -18,5 +18,8 @@
 <a href="{% url 'core:rodadas_relatorio' evento.id %}" class="btn btn-outline-primary mb-3">
     <i class="bi bi-table"></i> Agenda de Rodadas
 </a>
+<a href="{% url 'core:agendas_empresas_evento' evento.id %}" class="btn btn-outline-info mb-3">
+    Agendas das Empresas
+</a>
 
 {% endblock %}

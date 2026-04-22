@@ -16,6 +16,12 @@ urlpatterns = [
     path("empresa/<int:pk>/perfil/", views.empresa_perfil, name="empresa_perfil"),
     path("empresas/importar/", views.empresa_importar, name="empresa_importar"),
     
+    # RELACIONAMENTOS ENTRE EMPRESAS
+    path("<int:empresa_id>/relacionamentos/", views.empresa_relacionamentos, name="empresa_relacionamentos"),
+    path("<int:empresa_id>/relacionamentos/adicionar/", views.adicionar_relacionamento, name="empresa_adicionar_relacionamento"),
+    path("<int:empresa_id>/relacionamentos/remover/<int:rel_id>/", views.remover_relacionamento, name="remover_relacionamento"),
+    path("relatorios/empresas-relacionadas/", views.relatorio_empresas_relacionadas, name="relatorio_empresas_relacionadas"),
+    
     # CATEGORIAS
     path("categorias/", views.categoria_list, name="categoria_list"),
     path("categorias/nova/", views.categoria_create, name="categoria_create"),
@@ -51,7 +57,6 @@ urlpatterns = [
     path("evento/<int:evento_id>/ranking-afinidades/", views.ranking_afinidades, name="ranking_afinidades"),
     path("evento/<int:evento_id>/rodadas-confirmar-ranking/", views.rodadas_confirmar_ranking,
     name="rodadas_confirmar_ranking"),
-
      
     # RODADAS
     path("evento/<int:evento_id>/rodadas/gerar/", views.rodadas_gerar, name="rodadas_gerar"),
@@ -60,17 +65,25 @@ urlpatterns = [
     path('rodada/<int:rodada_id>/editar/', views.rodadas_editar, name='rodadas_editar'),
     path('rodada/<int:rodada_id>/excluir/', views.rodadas_excluir, name='rodadas_excluir'),
 
-    # Mesas
+    # MESAS
     path('rodada/<int:rodada_id>/mesas/', views.mesas_da_rodada, name='mesas_da_rodada'),
     #path('rodada/<int:rodada_id>/mesas/gerar/', views.mesas_gerar, name='mesas_gerar'),
     path("mesas/<int:pk>/relatorio/", views.mesa_relatorio, name="mesa_relatorio"),
      
-    # Painel
+    # PAINEL
     path('rodada/<int:rodada_id>/painel/', views.painel_da_rodada, name='painel_rodada'),
     
-    # Acesso
+    # ACESSO
     path("configuracoes/", views.configuracao_sistema_view, name="configuracao_sistema"),
     path("acesso/", views.acesso_rodanegocios, name="acesso_rodanegocios"),
     path("sair/", views.sair, name="sair"),
     path("reset-senha/", views.reset_senha_rodanegocios, name="reset_senha"),
+    
+    # AGENDAS
+    path("evento/<int:evento_id>/empresa/<int:empresa_id>/agenda-comprador/",
+        views.agenda_comprador, name="agenda_comprador"),
+    path("evento/<int:evento_id>/empresa/<int:empresa_id>/agenda-vendedor/",
+        views.agenda_vendedor, name="agenda_vendedor"),
+    path("evento/<int:evento_id>/agendas/", views.agendas_empresas_evento,
+        name="agendas_empresas_evento"),
 ]

@@ -5,8 +5,8 @@ from django.views.generic import (
 )
 from django.urls import reverse_lazy
 from .models import (Empresa, Evento, Rodada, Representante, Mesa, SolicitacaoAcesso,
-                     Interesse, Categoria, EmpresaEvento, Endereco)
-from .forms import (RepresentanteForm, EmpresaForm, CategoriaForm,
+                     Interesse, Categoria, EmpresaEvento, Endereco, RelacionamentoEmpresa)
+from .forms import (RepresentanteForm, EmpresaForm, CategoriaForm, RelacionamentoForm,
                     InteresseForm, EnderecoForm, SolicitacaoAcessoForm)
 from django.views.generic import TemplateView, CreateView, UpdateView, DeleteView
 from django.core.exceptions import ValidationError
@@ -29,6 +29,7 @@ from django.contrib.admin.views.decorators import staff_member_required
 from django.conf import settings
 from django.contrib.auth import logout
 from .utils import get_senha_rodanegocios, set_senha_rodanegocios
+from django.db.models import Q
 
 # -----------------------------
 # Home
@@ -190,6 +191,18 @@ class EmpresaDetailView(DetailView):
     form_class = EmpresaForm
     template_name = 'core/empresa_detail.html'
     context_object_name = 'empresa'
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        empresa = self.object
+
+        # Buscar relacionamentos onde ela é A ou B
+        relacoes = RelacionamentoEmpresa.objects.filter(
+            Q(empresa_a=empresa) | Q(empresa_b=empresa)
+        ).select_related("empresa_a", "empresa_b")
+
+        context["relacionamentos"] = relacoes
+        return context
  
 # ==============================
 class EmpresaCreateView(CreateView):
@@ -254,6 +267,13 @@ class EmpresaUpdateView(UpdateView):
         empresa = self.object
         endereco = empresa.endereco or Endereco()
         
+        # Relacionamentos onde ela é A ou B
+        relacoes = RelacionamentoEmpresa.objects.filter(
+            Q(empresa_a=empresa) | Q(empresa_b=empresa)
+        ).select_related("empresa_a", "empresa_b")
+
+        context["relacionamentos"] = relacoes
+         
         # Se o form_endereco já veio do POST, usa ele
         if "form_endereco" not in context:
             context["form_endereco"] = EnderecoForm(instance=endereco)
@@ -318,7 +338,6 @@ class EmpresaUpdateView(UpdateView):
                 self.get_context_data(form=form, form_endereco=form_endereco)
             )
 
-
 # ==============================
 def empresa_excluir(request, pk):
     empresa = get_object_or_404(Empresa, pk=pk)
@@ -374,7 +393,7 @@ def empresa_importar(request):
             ]
 
             criadas = 0
-            ignoradas = 0
+            ignoradas = 0 
 
             for row in reader:
                 row = {k.strip().lower(): v for k, v in row.items()}
@@ -793,6 +812,26 @@ def evento_participantes(request, evento_id):
     if request.method == "POST":
         selecionadas = request.POST.getlist("empresas")
 
+        # -----------------------------------------
+        # VERIFICA RELACIONAMENTOS ENTRE SELECIONADAS - ALERTA, MAS NÃO BLOQUEIA
+        # -----------------------------------------
+        relacionamentos_detectados = []
+
+        for i, empresa_id in enumerate(selecionadas):
+            for outra_id in selecionadas[i+1:]:
+                if empresas_tem_relacao(int(empresa_id), int(outra_id)):
+                    e1 = Empresa.objects.get(id=empresa_id)
+                    e2 = Empresa.objects.get(id=outra_id)
+                    relacionamentos_detectados.append((e1.nome, e2.nome))
+
+        # Se encontrou relacionamentos, apenas alerta
+        if relacionamentos_detectados:
+            msg = "Algumas empresas selecionadas já possuem relações prévias:<br>"
+            for e1, e2 in relacionamentos_detectados:
+                msg += f"• {e1} ↔ {e2}<br>"
+
+            messages.warning(request, mark_safe(msg))
+            
         # Validação: mínimo de 10 interesses
         for empresa_id in selecionadas:
             empresa = Empresa.objects.get(id=empresa_id)
@@ -1408,6 +1447,8 @@ def rodadas_excluir(request, rodada_id):
     return redirect('core:rodadas_list', evento_id=evento.id)
 
 # ----------------------------------------------------
+# Agenda de Rodadas
+# ----------------------------------------------------
 def rodadas_relatorio(request, evento_id):
     evento = get_object_or_404(Evento, id=evento_id)
 
@@ -1476,6 +1517,59 @@ def rodadas_relatorio(request, evento_id):
     }
 
     return render(request, "core/rodadas_relatorio.html", context)
+
+# Agenda das empresa no evento
+def agendas_empresas_evento(request, evento_id):
+    evento = get_object_or_404(Evento, id=evento_id)
+
+    empresas = (
+        Empresa.objects.filter(
+            empresaevento__evento=evento,
+            empresaevento__participa=True
+        )
+        .order_by("nome")
+    )
+
+    return render(request, "core/agendas_empresas_evento.html", {
+        "evento": evento,
+        "empresas": empresas,
+    })
+
+# Agendo do Comprador
+def agenda_comprador(request, empresa_id, evento_id):
+    empresa = get_object_or_404(Empresa, id=empresa_id)
+    evento = get_object_or_404(Evento, id=evento_id)
+
+    encontros = (
+        Mesa.objects
+        .filter(rodada__evento=evento, comprador=empresa)
+        .select_related("rodada", "vendedor")
+        .order_by("rodada__inicio_ro")
+    )
+
+    return render(request, "core/agenda_comprador.html", {
+        "empresa": empresa,
+        "evento": evento,
+        "encontros": encontros,
+    })
+
+# Agenda do Vendedor
+def agenda_vendedor(request, empresa_id, evento_id):
+    empresa = get_object_or_404(Empresa, id=empresa_id)
+    evento = get_object_or_404(Evento, id=evento_id)
+
+    encontros = (
+        Mesa.objects
+        .filter(rodada__evento=evento, vendedor=empresa)
+        .select_related("rodada", "comprador")
+        .order_by("rodada__inicio_ro")
+    )
+
+    return render(request, "core/agenda_vendedor.html", {
+        "empresa": empresa,
+        "evento": evento,
+        "encontros": encontros,
+    })
 
 # -----------------------------
 # MESAS
@@ -1582,3 +1676,75 @@ def mesa_relatorio(request, pk):
     }
 
     return render(request, "core/mesa_relatorio.html", context)
+
+#================================================
+# RELACIONAMENTO ENTRE EMPRESAS
+#================================================
+
+def empresa_relacionamentos(request, empresa_id):
+    empresa = get_object_or_404(Empresa, id=empresa_id)
+
+    # Relacionamentos onde ela é A ou B
+    relacoes = RelacionamentoEmpresa.objects.filter(
+        empresa_a=empresa
+    ) | RelacionamentoEmpresa.objects.filter(
+        empresa_b=empresa
+    )
+
+    context = {
+        "empresa": empresa,
+        "relacoes": relacoes,
+    }
+    return render(request, "core/empresa_relacionamentos.html", context)
+
+def adicionar_relacionamento(request, empresa_id):
+    empresa = get_object_or_404(Empresa, id=empresa_id)
+
+    if request.method == "POST":
+        form = RelacionamentoForm(request.POST or None, empresa_atual=empresa)
+
+        if form.is_valid():
+            rel = form.save(commit=False)
+            rel.empresa_a = empresa
+            rel.save()
+            messages.success(request, "Relacionamento adicionado com sucesso.")
+            return redirect("core:empresa_relacionamentos", empresa.id)
+    else:
+        form = RelacionamentoForm()
+
+    return render(request, "core/empresa_adicionar_relacionamento.html", {
+        "empresa": empresa,
+        "form": form
+    })
+
+def remover_relacionamento(request, empresa_id, rel_id):
+    empresa = get_object_or_404(Empresa, id=empresa_id)
+    rel = get_object_or_404(RelacionamentoEmpresa, id=rel_id)
+
+    rel.delete()
+    messages.success(request, "Relacionamento removido.")
+    return redirect("core:empresa_relacionamentos", empresa.id)
+
+# Relatorio de empresas relacionadas
+
+def relatorio_empresas_relacionadas(request):
+    # Busca todos os relacionamentos ativos
+    relacoes = RelacionamentoEmpresa.objects.select_related(
+        "empresa_a", "empresa_b"
+    ).order_by("empresa_a__nome", "empresa_b__nome")
+
+    # Agrupamento por empresa
+    agrupado = {}
+    for rel in relacoes:
+        empresa = rel.empresa_a
+        outra = rel.empresa_b
+
+        if empresa not in agrupado:
+            agrupado[empresa] = []
+        agrupado[empresa].append(rel)
+
+    context = {
+        "relacoes": relacoes,
+        "agrupado": agrupado,
+    }
+    return render(request, "core/relatorio_empresas_relacionadas.html", context)
