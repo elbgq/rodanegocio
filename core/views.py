@@ -28,8 +28,9 @@ from django.utils import timezone
 from django.contrib.admin.views.decorators import staff_member_required
 from django.conf import settings
 from django.contrib.auth import logout
-from .utils import get_senha_rodanegocios, set_senha_rodanegocios
+from .utils import get_senha_rodanegocios, set_senha_rodanegocios, empresas_tem_relacao
 from django.db.models import Q
+from collections import defaultdict
 
 # -----------------------------
 # Home
@@ -788,24 +789,6 @@ def evento_participantes(request, evento_id):
 
     percentual = round((total_inscritas / total_empresas) * 100) if total_empresas > 0 else 0
 
-    # ==============================
-    # ALERTAS ANTES DE GERAR RODADAS
-    # ==============================
-    
-    # 1. Empresas cadastradas mas não inscritas
-    '''
-    if total_inscritas < total_empresas:
-        messages.warning(
-            request,
-            "Existem empresas cadastradas que ainda não foram inscritas neste evento."
-        )
-    # 2. Não há compradores ou vendedores suficientes
-    if compradores_inscritos == 0 or vendedores_inscritos == 0:
-        messages.error(
-            request,
-            "Para gerar rodadas, é necessário ter pelo menos 1 comprador e 1 vendedor inscritos."
-        )
-        '''
     # ============================
     # PROCESSAMENTO DO FORMULÁRIO
     # ============================
@@ -973,6 +956,9 @@ def gerar_ranking(evento, top_n):
     for c in compradores:
         lista = []
         for v in vendedores:
+            # 🔥 BLOQUEIO DE RELACIONAMENTO
+            if empresas_tem_relacao(c.id, v.id):
+                continue
             score = calcular_afinidade(c, v)
             lista.append((v, score))
 
@@ -1034,8 +1020,11 @@ def gerar_rodadas_por_ranking(evento, qtd_rodadas):
 
             # Verifica se o vendedor já foi usado por este comprador ou já alocado nesta
             # rodada (para evitar repetições). Se não, aloca o vendedor ideal.
-            if (vendedor_ideal.id not in vendedores_usados_por_comprador[comprador.id]
-                and vendedor_ideal.id not in vendedores_usados_na_rodada):
+            if (
+                vendedor_ideal.id not in vendedores_usados_por_comprador[comprador.id]
+                and vendedor_ideal.id not in vendedores_usados_na_rodada
+                and not empresas_tem_relacao(comprador.id, vendedor_ideal.id)   # 🔥 BLOQUEIO
+            ):
                 
                 # Cria a mesa com o vendedor ideal para este comprador e esta rodada.
                 Mesa.objects.create(
@@ -1053,8 +1042,11 @@ def gerar_rodadas_por_ranking(evento, qtd_rodadas):
             
             # conflito → pegar próximo vendedor disponível
             for vendedor in lista:
-                if (vendedor.id not in vendedores_usados_por_comprador[comprador.id]
-                    and vendedor.id not in vendedores_usados_na_rodada):
+                if (
+                    vendedor.id not in vendedores_usados_por_comprador[comprador.id]
+                    and vendedor.id not in vendedores_usados_na_rodada
+                    and not empresas_tem_relacao(comprador.id, vendedor.id)   # 🔥 BLOQUEIO
+                ):
                         
                     Mesa.objects.create(
                         rodada=rodada,
@@ -1075,6 +1067,7 @@ def gerar_rodadas_por_ranking(evento, qtd_rodadas):
                 if (
                     vendedor.id not in vendedores_usados_por_comprador[comprador.id]
                     and vendedor.id not in vendedores_usados_na_rodada
+                    and not empresas_tem_relacao(comprador.id, vendedor.id)   # 🔥 BLOQUEIO
                 ):
                     Mesa.objects.create(
                         rodada=rodada,
@@ -1087,8 +1080,6 @@ def gerar_rodadas_por_ranking(evento, qtd_rodadas):
                     break
                 
 # ========================================================
-from datetime import datetime, timedelta
-
 def criar_rodadas(evento, params):
     """
     Cria rodadas com base nos parâmetros definidos pelo usuário.
@@ -1472,7 +1463,7 @@ def rodadas_relatorio(request, evento_id):
     )
 
     # Criar estrutura: comprador → {rodada_id: vendedor}
-    tabela = {c.id: {} for c in compradores}
+    tabela = defaultdict(dict) #{c.id: {} for c in compradores}
 
     for mesa in mesas:
         if mesa.comprador_id and mesa.vendedor_id:
@@ -1485,10 +1476,7 @@ def rodadas_relatorio(request, evento_id):
         modalidade="VENDEDOR"
     )
 
-    cores_vendedores = {}
-    for v in vendedores:
-        cor = cor_para_vendedor(v.id)  # retorna {"solid": ..., "alpha": ...}
-        cores_vendedores[v.id] = cor
+    cores_vendedores = {v.id: cor_para_vendedor(v.id) for v in vendedores}
     
     # Transformar em lista pronta para o template
     linhas = []
@@ -1700,8 +1688,13 @@ def empresa_relacionamentos(request, empresa_id):
 def adicionar_relacionamento(request, empresa_id):
     empresa = get_object_or_404(Empresa, id=empresa_id)
 
+    # 🔥 Bloqueia vendedores de criar relacionamentos
+    if empresa.modalidade != "COMPRADOR":
+        messages.error(request, "Somente empresas COMPRADORAS podem criar relacionamentos.")
+        return redirect("core:empresa_relacionamentos", empresa.id)
+    
     if request.method == "POST":
-        form = RelacionamentoForm(request.POST or None, empresa_atual=empresa)
+        form = RelacionamentoForm(request.POST, empresa_atual=empresa, initial={"empresa_a": empresa})
 
         if form.is_valid():
             rel = form.save(commit=False)
@@ -1710,7 +1703,7 @@ def adicionar_relacionamento(request, empresa_id):
             messages.success(request, "Relacionamento adicionado com sucesso.")
             return redirect("core:empresa_relacionamentos", empresa.id)
     else:
-        form = RelacionamentoForm()
+        form = RelacionamentoForm(empresa_atual=empresa, initial={"empresa_a": empresa})
 
     return render(request, "core/empresa_adicionar_relacionamento.html", {
         "empresa": empresa,
@@ -1733,15 +1726,14 @@ def relatorio_empresas_relacionadas(request):
         "empresa_a", "empresa_b"
     ).order_by("empresa_a__nome", "empresa_b__nome")
 
-    # Agrupamento por empresa
-    agrupado = {}
+    # Agrupamento por empresa_a (comprador)
+    agrupado = defaultdict(list)
+    
     for rel in relacoes:
-        empresa = rel.empresa_a
-        outra = rel.empresa_b
+        agrupado[rel.empresa_a].append(rel)
 
-        if empresa not in agrupado:
-            agrupado[empresa] = []
-        agrupado[empresa].append(rel)
+    # Converte para dict normal (opcional, apenas para estética)
+    agrupado = dict(agrupado)
 
     context = {
         "relacoes": relacoes,

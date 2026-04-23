@@ -137,10 +137,30 @@ class RelacionamentoForm(forms.ModelForm):
         empresa_atual = kwargs.pop("empresa_atual", None)
         super().__init__(*args, **kwargs)
 
-        qs = Empresa.objects.all().order_by("nome")
+        # 🔥 Filtrar apenas vendedores
+        qs = Empresa.objects.filter(modalidade="VENDEDOR").order_by("nome")
 
+        # Excluir a própria empresa
         if empresa_atual:
             qs = qs.exclude(id=empresa_atual.id)
 
+        # Aplicar o queryset filtrado
         self.fields["empresa_b"].queryset = qs
+        
+        # 🔥 Mostrar nome + modalidade no select
+        self.fields["empresa_b"].label_from_instance = (
+        lambda obj: f"{obj.nome} — {obj.modalidade}"
+    )
+        
+    # Garantir que empresa_a seja COMPRADOR e empresa_b seja VENDEDOR
+    def clean(self):
+        cleaned_data = super().clean()
+        empresa_b = cleaned_data.get("empresa_b")
+
+        # Validar apenas empresa_b aqui
+        if empresa_b and empresa_b.modalidade != "VENDEDOR":
+            raise forms.ValidationError("A empresa B deve ser VENDEDOR.")
+
+        return cleaned_data
+
         

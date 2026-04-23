@@ -3,19 +3,21 @@
 
 {% block content %}
 
-<h2>Detalhes — {{ evento.nome }}</h2>
-<h4>Agenda de Rodadas</h4>
+<h2 class="mb-1">Agenda de Rodadas — {{ evento.nome }}</h2>
+<p class="text-muted mb-4">
+    <strong>Data:</strong> {{ evento.data }} &nbsp;•&nbsp;
+    <strong>Local:</strong> {{ evento.local }}
+</p>
 
-<p><strong>Data:</strong> {{ evento.data }} - <strong>Local:</strong> {{ evento.local }}</p>
-
-<table class="table table-bordered table-striped text-center align-middle">
+<div class="table-responsive">
+<table class="table table-bordered align-middle text-center shadow-sm">
     <thead class="table-primary">
         <tr>
-            <th class="text-start">Comprador</th>
+            <th class="text-start" style="width: 220px;">Comprador</th>
 
             {% for r in rodadas %}
-                <th>
-                    {{ r.inicio_ro|time:"H:i" }}<br>
+                <th class="p-2">
+                    <div class="fw-bold">{{ r.inicio_ro|time:"H:i" }}</div>
                     <small class="text-muted">{{ r.nome }}</small>
                 </th>
             {% endfor %}
@@ -25,16 +27,20 @@
     <tbody>
         {% for linha in linhas %}
             <tr>
-                <td class="text-start fw-bold">
+                <td class="text-start fw-semibold bg-light">
                     {{ linha.comprador.nome }}
                 </td>
 
                 {% for cel in linha.celulas %}
-                    <td {% if cel %}style="background-color: {{ cel.cor_alpha }};"{% endif %}>
+                    <td class="p-1"
                         {% if cel %}
-                            <span style="color: {{ cel.cor_solid }}; font-weight: bold;">
+                            style="background-color: {{ cel.cor_alpha }};"
+                        {% endif %}
+                    >
+                        {% if cel %}
+                            <div class="fw-bold" style="color: {{ cel.cor_solid }};">
                                 {{ cel.vendedor.nome }}
-                            </span>
+                            </div>
                         {% else %}
                             <span class="text-muted">—</span>
                         {% endif %}
@@ -42,8 +48,12 @@
                 {% endfor %}
             </tr>
         {% endfor %}
-
     </tbody>
 </table>
-<a href="{% url 'core:evento_detail' evento.id %}" class="btn btn-secondary mb-2">Voltar</a>
+</div>
+
+<a href="{% url 'core:evento_detail' evento.id %}" class="btn btn-secondary mt-3">
+    Voltar
+</a>
+
 {% endblock %}

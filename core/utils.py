@@ -30,11 +30,10 @@ def set_senha_rodanegocios(nova_senha):
     )
 
 # Função para verificar relacionamentos entre compradores e vendedores
-def empresas_tem_relacao(empresa1_id, empresa2_id):
-    a, b = sorted([empresa1_id, empresa2_id])
+def empresas_tem_relacao(comprador_id, vendedor_id):
     return RelacionamentoEmpresa.objects.filter(
-        empresa_a_id=a,
-        empresa_b_id=b,
+        empresa_a_id=comprador_id,
+        empresa_b_id=vendedor_id,
         ativo=True
     ).exists()
  

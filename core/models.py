@@ -232,11 +232,27 @@ class RelacionamentoEmpresa(models.Model):
     class Meta:
         unique_together = ("empresa_a", "empresa_b")
 
+    def clean(self):
+        # Só valida se empresa_a já estiver definida
+        if self.empresa_a_id and self.empresa_a.modalidade != "COMPRADOR":
+            raise ValidationError("empresa_a deve ser COMPRADOR.")
+
+        # Só valida se empresa_b já estiver definida
+        if self.empresa_b_id and self.empresa_b.modalidade != "VENDEDOR":
+            raise ValidationError("empresa_b deve ser VENDEDOR.")
+
+    def save(self, *args, **kwargs):
+        self.clean()  # garante validação sempre
+        super().save(*args, **kwargs)
+    
+    def __str__(self):
+        return f"{self.empresa_a} ↔ {self.empresa_b} ({self.tipo_relacao})"
+
+        
+'''
     def save(self, *args, **kwargs):
         # Garante que empresa_a_id < empresa_b_id para evitar duplicidade
         if self.empresa_a_id > self.empresa_b_id:
             self.empresa_a, self.empresa_b = self.empresa_b, self.empresa_a
         super().save(*args, **kwargs)
-
-    def __str__(self):
-        return f"{self.empresa_a} ↔ {self.empresa_b} ({self.tipo_relacao})"
+'''
