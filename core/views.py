@@ -17,6 +17,7 @@ from django.core.paginator import Paginator
 from core.services.matchmaking import gerar_todas_as_rodadas
 from django.contrib.messages import get_messages
 import csv
+import re
 import random
 from django.contrib import messages
 from django.db import IntegrityError
@@ -31,6 +32,7 @@ from django.contrib.auth import logout
 from .utils import get_senha_rodanegocios, set_senha_rodanegocios, empresas_tem_relacao
 from django.db.models import Q
 from collections import defaultdict
+
 
 # -----------------------------
 # Home
@@ -375,6 +377,12 @@ def empresa_perfil(request, pk):
 # -----------------------------
 # EMPRESAS - IMPORTAÇÃO DE CSV
 # -----------------------------
+
+def limpar_cnpj(valor):
+    if not valor:
+        return None
+    return re.sub(r'\D', '', valor)
+
 def empresa_importar(request):
     if request.method == "POST":
         arquivo = request.FILES.get("arquivo")
@@ -387,51 +395,71 @@ def empresa_importar(request):
             decoded = arquivo.read().decode("utf-8").splitlines()
             reader = csv.DictReader(decoded, delimiter=";")
 
-            # Remove BOM, espaços e normaliza para minúsculas
             reader.fieldnames = [
                 h.strip().lower().replace("\ufeff", "")
                 for h in reader.fieldnames
             ]
+
+            MAPA_MODALIDADE = {
+                "comprador": "COMPRADOR",
+                "vendedor": "VENDEDOR",
+            }
 
             criadas = 0
             ignoradas = 0 
 
             for row in reader:
                 row = {k.strip().lower(): v for k, v in row.items()}
-                nome = row.get("nome")
-                modalidade = row.get("modalidade")
-                cidade = (row.get("cidade") or "").strip().title()
-                estado = (row.get("estado") or "").strip().title()
-                pais = (row.get("pais") or "").strip().title()
+                nome = (row.get("nome") or "").strip()
+                cnpj = limpar_cnpj(row.get("cnpj"))
+                site = (row.get("site") or "").strip()
+                modalidade_csv = (row.get("modalidade") or "").strip().lower()
+                modalidade = MAPA_MODALIDADE.get(modalidade_csv)
 
-                if not nome:
+                if not nome or not modalidade:
                     ignoradas += 1
                     continue
-                
-                # 1. Criar ou obter o endereço
+
+                rua = (row.get("rua") or "").strip().title()
+                numero = (row.get("numero") or "").strip()
+                complemento = (row.get("complemento") or "").strip().title()
+                bairro = (row.get("bairro") or "").strip().title()
+                cidade = (row.get("cidade") or "").strip().title()
+                estado = (row.get("estado") or "").strip().title()
+                cep = (row.get("cep") or "").strip()
+                pais = (row.get("pais") or "").strip().title() or "Brasil"
+
                 endereco, _ = Endereco.objects.get_or_create(
+                    rua=rua,
+                    numero=numero,
+                    complemento=complemento,
+                    bairro=bairro,
                     cidade=cidade,
                     estado=estado,
                     pais=pais
                 )
 
-                # 2. Criar ou obter a empresa
                 empresa, criada = Empresa.objects.get_or_create(
                     nome=nome,
                     defaults={
+                        "cnpj": cnpj,
+                        "site": site,
                         "modalidade": modalidade,
                         "endereco": endereco
                     }
                 )
 
-                # 3. Se a empresa já existia, atualizar endereço (opcional)
                 if not criada:
-                    empresa.endereco = endereco
+                    empresa.cnpj = cnpj
+                    empresa.site = site
                     empresa.modalidade = modalidade
-                    empresa.save()
+                    # empresa.endereco = endereco
+
+                # 🔥 Validação completa
+                empresa.full_clean()
+                empresa.save()
 
                 criadas += 1
-
 
             messages.success(request, f"{criadas} empresas importadas. {ignoradas} ignoradas.")
             return redirect("core:empresa_list")
@@ -441,6 +469,7 @@ def empresa_importar(request):
             return redirect("core:empresa_importar")
 
     return render(request, "core/empresa_importar.html")
+
 
 # -----------------------------
 # INTERESSES

@@ -25,23 +25,21 @@
             <td>{{ evento.inicio_ev }}</td>
             <td>{{ evento.termino_ev }}</td>
             <td class="text-center align-middle">
-                <a href="{% url 'core:evento_detail' evento.id %}" class="btn btn-sm btn-info">
+                <a href="{% url 'core:evento_detail' evento.id %}" class="btn btn-sm btn-outline-info">
                     Detalhes</a>
-                <a href="{% url 'core:evento_update' evento.id %}" class="btn btn-sm btn-warning">
+                <a href="{% url 'core:evento_update' evento.id %}" class="btn btn-sm btn-outline-warning">
                     Editar</a>
-                <a href="{% url 'core:evento_confirm_delete' evento.id %}" class="btn btn-sm btn-danger">
-                    Excluir</a>
+                
                 {% if evento.rodadas.exists %}
-                    <a href="{% url 'core:rodadas_list' evento.id %}" class="btn btn-sm btn-success">
-                        Ver Rodadas
-                    </a>
+                    <a href="{% url 'core:rodadas_list' evento.id %}" class="btn btn-sm btn-outline-success">
+                        Rodadas</a>
                     
                 {% else %}
-                    <a href="{% url 'core:evento_participantes' evento.id %}" class="btn btn-sm btn-success">
-                        Gerenciar Participantes das Rodadas
-                    </a>
+                    <a href="{% url 'core:evento_participantes' evento.id %}" class="btn btn-sm btn-outline-success">
+                        Gerenciar Participantes das Rodadas</a>
                 {% endif %}
- 
+                    <a href="{% url 'core:evento_confirm_delete' evento.id %}" class="btn btn-sm btn-outline-danger">
+                    Excluir</a>
             </td>
         </tr>
         {% endfor %}
