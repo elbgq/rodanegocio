@@ -2,6 +2,8 @@ from core.models import Empresa, Rodada, Mesa
 from django.db import transaction
 from datetime import timedelta, datetime
 from core.utils import empresas_tem_relacao
+import math
+
 
 #====================================
 # Esta função calcula a afinidade entre duas pessoas com base nos interesses que elas
@@ -14,60 +16,98 @@ def calcular_afinidade(a, b):
 
 #====================================
 # Esta função implementa uma lógica de matching otimizado entre compradores e vendedores,
-# respeitando limites e evitando repetições dentro da mesma rodada.
+# respeitando os seguintes critérios:
+# 1. Um comprador e um vendedor por mesa;
+# 2. Os vendedores participam de uma mesa por rodada;
+# 3. Empresas relacionadas não devem se encontrar;
+# 4. Vendedores devem tem participação, no mínimo, de metade da quantidade de rodadas.
 #=====================================
-def gerar_pares_para_rodada(compradores, vendedores_disponiveis, qtd_mesas):
+def gerar_pares_para_rodada(
+    compradores,
+    vendedores_disponiveis,
+    qtd_mesas,
+    participacoes_vendedores,
+    minimo_por_vendedor,
+    encontros_previos,
+    rodada_atual,
+    qtd_rodadas,
+):
     matriz = []
 
-    #Criação da matriz de afinidades e calcula a afinidade entre eles
     for c in compradores:
         for e in vendedores_disponiveis:
-            
-            # Trava de ralacionamento entre comprador e vendedor
+
+            # Critério 3: empresas relacionadas não podem se encontrar
             if empresas_tem_relacao(c.id, e.id):
-                continue  # ignora este par
-            
-            score = calcular_afinidade(c, e)
+                continue
+
+            # Critério 5: comprador não pode repetir vendedor em rodadas diferentes
+            if e.id in encontros_previos[c.id]:
+                continue
+
+            score_base = calcular_afinidade(c, e)
+
+            participacoes = participacoes_vendedores[e.id]
+
+            # quantas rodadas ainda faltam
+            rodadas_restantes = qtd_rodadas - rodada_atual + 1
+            faltam_para_minimo = max(0, minimo_por_vendedor - participacoes)
+
+            # vendedor já atingiu o mínimo
+            if participacoes >= minimo_por_vendedor:
+                # joga lá pra baixo, mas não exclui totalmente
+                score = score_base - 10000
+
+            else:
+                # vendedor ainda não atingiu o mínimo
+                score = score_base + 1000
+
+                # se ele está em risco de não conseguir mais atingir o mínimo,
+                # dá prioridade ABSOLUTA
+                if faltam_para_minimo > rodadas_restantes:
+                    score += 100000  # urgência máxima
+
             matriz.append((c, e, score))
-            
-    # Ordenação pela maior afinidade. A matriz está priorizando os melhores matches.
+
+    # se não há nenhuma combinação possível, não força nada que quebre regras:
+    # apenas retorna vazio e a rodada terá menos mesas
+    if not matriz:
+        return [], set()
+
     matriz.sort(key=lambda x: x[2], reverse=True)
 
-    # Preparação para montar os pares, garantindo que cada vendedor seja usado apenas uma vez
-    # por rodada, mas permitindo que compradores possam repetir entre rodadas.
     pares = []
     usados_compradores = set()
     usados_vendedores = set()
 
-    # Construção dos pares. Se já atingiu o número de mesas, para tudo.
     for c, e, score in matriz:
         if len(pares) >= qtd_mesas:
             break
-        
-        # Evitar repetição de vendedores dentro da mesma rodada, mas permitir
-        # que eles possam participar de rodadas futuras.
+
+        # Critério 2: vendedor só 1x por rodada
         if e.id in usados_vendedores:
             continue
 
-        # Evitar repetição de compradores dentro da mesma rodada, mas permitir que
-        # eles possam participar de rodadas futuras.
+        # comprador só 1x por rodada
         if c.id in usados_compradores:
             continue
-        
-        # Marca comprador e vendedor como usados. O vendedor não pode ser usado novamente
-        # nesta rodada, mas o comprador pode ser usado em rodadas futuras.
+
         pares.append((c, e))
         usados_compradores.add(c.id)
         usados_vendedores.add(e.id)
-        
-    # Retorna os pares formados e os vendedores usados para que possam ser removidos da
-    # lista de disponíveis para as próximas rodadas.
+
+        participacoes_vendedores[e.id] += 1
+        encontros_previos[c.id].add(e.id)
+
     return pares, usados_vendedores
 
-#=====================================
-# Essa é a função mais completa do fluxo, porque ela cria todas as rodadas, controla
-# horários, pausas, mesas e garante que todos os vendedores sejam atendidos ao longo do evento.
-#=====================================
+
+# ====================================
+# Gera todas as rodadas do evento, controlando:
+# - horários, pausas, mesas;
+# - distribuição de vendedores ao longo das rodadas;
+# - cumprimento dos critérios 1 a 7.
+# ====================================
 def gerar_todas_as_rodadas(
     evento,
     qtd_mesas,
@@ -75,9 +115,9 @@ def gerar_todas_as_rodadas(
     inicio_rodadas,
     intervalo_minutos,
     pausa_cada,
-    pausa_duracao
+    pausa_duracao,
+    qtd_rodadas,
 ):
-    # Carrega compradores e vendedores do evento
     compradores = list(Empresa.objects.filter(
         modalidade="COMPRADOR",
         empresaevento__evento=evento,
@@ -90,46 +130,45 @@ def gerar_todas_as_rodadas(
         empresaevento__participa=True
     ))
 
-    # Cria um conjunto com IDs dos vendedores restantes para garantir que cada vendedor
-    # seja atendido apenas uma vez por rodada, mas possa participar de rodadas futuras.
-    vendedores_restantes = set(e.id for e in vendedores)
-    
-    # Configura variáveis iniciais para controle de rodadas e horários
-    rodadas_criadas = []
-    numero_rodada = 1
-    # início customizado para a primeira rodada
-    horario_atual = datetime.combine(evento.data, datetime.strptime(inicio_rodadas, "%H:%M").time())
- 
-    # Loop principal: continua enquanto houver vendedores não atendidos. O loop garante
-    # que cada vendedor seja atendido em pelo menos uma rodada, mas permite que compradores
-    # possam repetir entre rodadas.
-    while vendedores_restantes:
-        # Seleciona apenas vendedores ainda disponíveis
-        vendedores_disponiveis = [
-            e for e in vendedores if e.id in vendedores_restantes
-        ]
-
-        # Gera os pares da rodada atual, garantindo que cada vendedor seja usado apenas
-        # uma vez por rodada, mas permitindo que compradores possam repetir entre rodadas.
-        pares, usados_vendedores = gerar_pares_para_rodada(
-            compradores,
-            vendedores_disponiveis,
-            qtd_mesas
+    if len(vendedores) < qtd_mesas:
+        raise ValueError(
+            f"Impossível completar todas as mesas: há apenas {len(vendedores)} vendedores para {qtd_mesas} mesas."
         )
 
-        # Se não houver pares possíveis, encerra.
-        if not pares:
-            break
-        
-        # Calcula horário de início e fim da rodada.
+    minimo_por_vendedor = max(1, math.ceil(qtd_rodadas / 2))
+
+    participacoes_vendedores = {v.id: 0 for v in vendedores}
+
+    # encontros_previos: comprador_id -> set(vendedor_id)
+    encontros_previos = {c.id: set() for c in compradores}
+
+    rodadas_criadas = []
+
+    horario_atual = datetime.combine(
+        evento.data,
+        datetime.strptime(inicio_rodadas, "%H:%M").time()
+    )
+
+    for numero_rodada in range(1, qtd_rodadas + 1):
+        vendedores_ordenados = sorted(
+            vendedores, key=lambda v: participacoes_vendedores[v.id]
+        )
+
+        pares, _ = gerar_pares_para_rodada(
+            compradores=compradores,
+            vendedores_disponiveis=vendedores_ordenados,
+            qtd_mesas=qtd_mesas,
+            participacoes_vendedores=participacoes_vendedores,
+            minimo_por_vendedor=minimo_por_vendedor,
+            encontros_previos=encontros_previos,
+            rodada_atual=numero_rodada,
+            qtd_rodadas=qtd_rodadas,
+        )
+
         inicio = horario_atual.time()
         fim_dt = horario_atual + timedelta(minutes=duracao_minutos)
         fim = fim_dt.time()
 
-        # Cria a rodada no banco de dados e as mesas correspondentes aos pares formados.
-        # Cada vendedor é marcado como usado para esta rodada, mas pode ser usado em
-        # rodadas futuras. Cada comprador pode ser usado em múltiplas rodadas, mas não
-        # pode repetir dentro da mesma rodada.
         rodada = Rodada.objects.create(
             evento=evento,
             nome=f"Rodada {numero_rodada}",
@@ -138,8 +177,6 @@ def gerar_todas_as_rodadas(
             fim_ro=fim
         )
 
-        # Cria as mesas da rodada com os pares formados. Cada mesa representa um encontro
-        # entre um comprador e um vendedor.
         for i, (comprador, vendedor) in enumerate(pares, start=1):
             Mesa.objects.create(
                 rodada=rodada,
@@ -148,24 +185,15 @@ def gerar_todas_as_rodadas(
                 vendedor=vendedor
             )
 
-        # Armazena a rodada criada para referência futura e incrementa o número da rodada.
         rodadas_criadas.append(rodada)
-        numero_rodada += 1
 
-        # Atualiza horário para próxima rodada
         horario_atual = fim_dt + timedelta(minutes=intervalo_minutos)
- 
-        # Pausa programada
-        if pausa_cada > 0 and (numero_rodada - 1) % pausa_cada == 0:
-            horario_atual += timedelta(minutes=pausa_duracao)
-        
-        # Remove vendedores que já foram usados nesta rodada, mas permite que compradores
-        # possam repetir entre rodadas.
-        vendedores_restantes -= usados_vendedores
 
-    # Retorna todas as rodadas criadas para que possam ser exibidas ou processadas
-    # posteriormente.
+        if pausa_cada > 0 and numero_rodada % pausa_cada == 0:
+            horario_atual += timedelta(minutes=pausa_duracao)
+
     return rodadas_criadas
+
 
 # Resumo: "É um algoritmo guloso + organizador de agenda, muito bem estruturado."
 

@@ -37,26 +37,25 @@
 
                 <!-- Ver Mesas -->
                 <a href="{% url 'core:mesas_da_rodada' rodada.id %}"
-                   class="btn btn-primary btn-sm">
+                   class="btn btn-outline-primary btn-sm">
                     Mesas
                 </a>
-
+                <!-- Painel -->
+                <a href="{% url 'core:painel_rodada' rodada.id %}"
+                   class="btn btn-outline-success btn-sm">
+                    Painel
+                </a>
                 <!-- Editar -->
                 <a href="{% url 'core:rodadas_editar' rodada.id %}"
-                   class="btn btn-warning btn-sm">
+                   class="btn btn-outline-warning btn-sm">
                     Editar
                 </a>
 
                 <!-- Excluir -->
                 <a href="{% url 'core:rodadas_excluir' rodada.id %}"
-                   class="btn btn-danger btn-sm"
+                   class="btn btn-outline-danger btn-sm"
                    onclick="return confirm('Tem certeza que deseja excluir esta rodada?');">
                     Excluir
-                </a>
-                <!-- Painel -->
-                <a href="{% url 'core:painel_rodada' rodada.id %}"
-                   class="btn btn-success btn-sm">
-                    Painel
                 </a>
             </td>
         </tr>

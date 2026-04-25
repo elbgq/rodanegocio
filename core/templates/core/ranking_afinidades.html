@@ -12,10 +12,23 @@
         </div>
 
         <ul class="list-group list-group-flush">
-            {% for vendedor, score in item.melhores %}
-                <li class="list-group-item d-flex justify-content-between">
-                    <span>{{ vendedor.nome }}</span>
-                    <span class="badge bg-success">{{ score }}</span>
+            {% for m in item.melhores %}
+                <li class="list-group-item d-flex justify-content-between align-items-center"
+                    style="background-color: {{ m.cor_alpha }};">
+                    <div>
+                        <span class="fw-bold" style="color: {{ m.cor_solid }};">
+                            {{ m.vendedor.nome }}
+                        </span>
+
+                        {% if m.conflito %}
+                            <span class="text-danger fw-bold ms-2">⚠️ conflito</span>
+                        {% endif %}
+                    </div>
+
+                    <div>
+                        <span class="badge bg-success">{{ m.score }}</span>
+                        <span class="badge bg-info text-dark">{{ m.percentual }}%</span>
+                    </div>
                 </li>
             {% endfor %}
         </ul>

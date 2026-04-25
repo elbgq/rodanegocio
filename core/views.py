@@ -18,6 +18,7 @@ from core.services.matchmaking import gerar_todas_as_rodadas
 from django.contrib.messages import get_messages
 import csv
 import re
+import math
 import random
 from django.contrib import messages
 from django.db import IntegrityError
@@ -910,9 +911,9 @@ def relatorio_inscritos(request, evento_id):
 # ====================================
 # Esta função gera e exibe o ranking de afinidade entre compradores e vendedores.
 # Apenas calcula afinidades e prepara dados para exibição.
+# Usado exclusivamente para enviar ao template.
 # ====================================
 def ranking_afinidades(request, evento_id):
-    # Carrega o evento
     evento = get_object_or_404(Evento, id=evento_id)
 
     # Carrega compradores e vendedores participantes do evento
@@ -928,6 +929,9 @@ def ranking_afinidades(request, evento_id):
         empresaevento__participa=True
     )
 
+    # Cores por vendedor (mesma função usada no relatório)
+    cores_vendedores = {v.id: cor_para_vendedor(v.id) for v in vendedores}
+    
     # Descobre o top_n
     params = request.session.get("rodadas_params")
     if params and "qtd_rodadas" in params:
@@ -943,12 +947,32 @@ def ranking_afinidades(request, evento_id):
     for comprador in compradores:
         lista = []
 
+        # Número total de interesses do comprador (para percentual)
+        total_interesses = comprador.interesses.count() or 1
+        
         for vendedor in vendedores:
             score = calcular_afinidade(comprador, vendedor)
-            lista.append((vendedor, score))
+            
+            # Afinidade percentual
+            percentual = round((score / total_interesses) * 100)
+            
+            # Verifica conflito
+            conflito = empresas_tem_relacao(comprador.id, vendedor.id)
+            
+            # Cores
+            cor = cores_vendedores.get(vendedor.id, {"solid": "#000", "alpha": "#fff"})
+            
+            lista.append({
+                "vendedor": vendedor,
+                "score": score,
+                "percentual": percentual,
+                "conflito": conflito,
+                "cor_solid": cor["solid"],
+                "cor_alpha": cor["alpha"],
+            })
 
         # Ordenar do maior para o menor score
-        lista.sort(key=lambda x: x[1], reverse=True)
+        lista.sort(key=lambda x: x["score"], reverse=True)
 
         # Adiciona ao ranking final apenas os top N vendedores para este comprador.
         ranking.append({
@@ -999,168 +1023,6 @@ def gerar_ranking(evento, top_n):
     return ranking
 
 # ========================================================
-# A finalidade desta função é preencher as rodadas alocando os vendedores mais afinados com
-# cada comprador, respeitando as regras de não repetir vendedor para o mesmo comprador
-# e tentando evitar repetições dentro da mesma rodada.
-# ========================================================
-def gerar_rodadas_por_ranking(evento, qtd_rodadas):
-    # Gera o ranking completo (todos os vendedores ordenados por afinidade para cada comprador),
-    # a partir da função gerar_ranking.
-    ranking = gerar_ranking(evento, qtd_rodadas)
-
-    # Carrega compradores e vendedores
-    compradores = Empresa.objects.filter(
-        modalidade="COMPRADOR",
-        empresaevento__evento=evento,
-        empresaevento__participa=True
-    )
-
-    vendedores = list(Empresa.objects.filter(
-        modalidade="VENDEDOR",
-        empresaevento__evento=evento,
-        empresaevento__participa=True
-    ))
-    
-    cores_vendedores = {v.id: cor_para_vendedor(v.id) for v in vendedores}
-
-    # Carrega as rodadas já criadas, mas não cria novas rodadas aqui. A função criar_rodadas
-    # deve ser chamada antes desta função para criar as rodadas com os horários.
-    rodadas = Rodada.objects.filter(evento=evento).order_by("inicio_ro")
-
-    # 🔥 Agora controlamos vendedores usados POR COMPRADOR
-    vendedores_usados_por_comprador = {c.id: set() for c in compradores}
-
-    # Para cada rodada, tentamos alocar os vendedores mais afinados para cada comprador,
-    # respeitando as regras de alocação.
-    for rodada_idx, rodada in enumerate(rodadas):
-        vendedores_usados_na_rodada = set()
-
-        # Embaralha compradores para evitar prioridade injusta
-        compradores_lista = compradores[:]
-        random.shuffle(compradores_lista)
-        
-        # Para cada comprador nesta rodada, tentamos alocar o vendedor mais afinado possível,
-        # seguindo as regras já definidas.
-        for comprador in compradores_lista:
-            lista = ranking[comprador.id]
-
-            # 1) vendedor ideal para esta rodada
-            vendedor_ideal = lista[rodada_idx]
-
-            # Verifica se o vendedor já foi usado por este comprador ou já alocado nesta
-            # rodada (para evitar repetições). Se não, aloca o vendedor ideal.
-            if (
-                vendedor_ideal.id not in vendedores_usados_por_comprador[comprador.id]
-                and vendedor_ideal.id not in vendedores_usados_na_rodada
-                and not empresas_tem_relacao(comprador.id, vendedor_ideal.id)   # 🔥 BLOQUEIO
-            ):
-                
-                # Cria a mesa com o vendedor ideal para este comprador e esta rodada.
-                Mesa.objects.create(
-                    rodada=rodada,
-                    numero=len(vendedores_usados_na_rodada) + 1,
-                    comprador=comprador,
-                    vendedor=vendedor_ideal
-                )
-                vendedores_usados_na_rodada.add(vendedor_ideal.id)
-                vendedores_usados_por_comprador[comprador.id].add(vendedor_ideal.id)
-                continue
-            
-            # 2) Tenta outros vendedores do ranking
-            alocado = False
-            
-            # conflito → pegar próximo vendedor disponível
-            for vendedor in lista:
-                if (
-                    vendedor.id not in vendedores_usados_por_comprador[comprador.id]
-                    and vendedor.id not in vendedores_usados_na_rodada
-                    and not empresas_tem_relacao(comprador.id, vendedor.id)   # 🔥 BLOQUEIO
-                ):
-                        
-                    Mesa.objects.create(
-                        rodada=rodada,
-                        numero=len(vendedores_usados_na_rodada) + 1,
-                        comprador=comprador,
-                        vendedor=vendedor
-                    )
-                    vendedores_usados_na_rodada.add(vendedor.id)
-                    vendedores_usados_por_comprador[comprador.id].add(vendedor.id)
-                    alocado=True
-                    break
-                
-            if alocado:
-                continue
-
-            # 3) Fallback: tenta vendedores fora do ranking
-            for vendedor in vendedores:
-                if (
-                    vendedor.id not in vendedores_usados_por_comprador[comprador.id]
-                    and vendedor.id not in vendedores_usados_na_rodada
-                    and not empresas_tem_relacao(comprador.id, vendedor.id)   # 🔥 BLOQUEIO
-                ):
-                    Mesa.objects.create(
-                        rodada=rodada,
-                        numero=len(vendedores_usados_na_rodada) + 1,
-                        comprador=comprador,
-                        vendedor=vendedor
-                    )
-                    vendedores_usados_na_rodada.add(vendedor.id)
-                    vendedores_usados_por_comprador[comprador.id].add(vendedor.id)
-                    break
-                
-# ========================================================
-def criar_rodadas(evento, params):
-    """
-    Cria rodadas com base nos parâmetros definidos pelo usuário.
-    params vem de request.session["rodadas_params"]
-    """
-    # Apaga rodadas antigas para evitar duplicação
-    Rodada.objects.filter(evento=evento).delete()
-
-    qtd_rodadas = params["qtd_rodadas"]
-    duracao = params["duracao"]
-    inicio_rodadas = params["inicio_rodadas"]
-    intervalo = params["intervalo"]
-    pausa_cada = params["pausa_cada"]
-    pausa_duracao = params["pausa_duracao"]
-    
-    # Converte horário inicial
-    hora_atual = datetime.combine(
-        evento.data,
-        datetime.strptime(inicio_rodadas, "%H:%M").time()
-    )
-
-    rodadas = []
-
-    for i in range(1, qtd_rodadas + 1):
-        # Início e fim da rodada
-        inicio_ro = hora_atual.time()
-        fim_dt = hora_atual + timedelta(minutes=duracao)
-        fim_ro = fim_dt.time()
-
-        rodada = Rodada.objects.create(
-            evento=evento,
-            nome=f"Rodada {i}",
-            duracao=duracao,
-            inicio_ro=inicio_ro,
-            fim_ro=fim_ro
-        )
-
-        rodadas.append(rodada)
-       # Avança o relógio para depois da rodada
-        hora_atual = fim_dt
-        
-        # Intervalo entre rodadas
-        if intervalo > 0:
-            hora_atual += timedelta(minutes=intervalo)
-
-        # Pausa programada
-        if pausa_cada > 0 and i % pausa_cada == 0:
-            hora_atual += timedelta(minutes=pausa_duracao)
-
-    return rodadas
-
-# ========================================================
 def rodadas_gerar_ranking(request, evento_id):
     evento = get_object_or_404(Evento, id=evento_id)
 
@@ -1181,6 +1043,92 @@ def rodadas_gerar_ranking(request, evento_id):
         return redirect("core:relatorio_rodadas", evento_id=evento.id)
 
     return render(request, "core/rodadas_gerar_ranking.html", {"evento": evento})
+
+#==============================
+# Esse relatório serve para você (ou qualquer organizador do evento) entender:
+# - quais vendedores atingiram o mínimo
+# - quais ficaram abaixo
+# - por que ficaram abaixo
+# - quantos compradores compatíveis cada vendedor tinha
+# - quantos encontros foram bloqueados por conflito
+# - quantos encontros foram bloqueados por repetição
+# - quantas rodadas ainda estavam disponíveis quando o vendedor ficou “travado”
+#==============================
+from collections import defaultdict
+
+def rodadas_debug_report(request, evento_id):
+    evento = get_object_or_404(Evento, id=evento_id)
+
+    compradores = list(Empresa.objects.filter(
+        modalidade="COMPRADOR",
+        empresaevento__evento=evento,
+        empresaevento__participa=True
+    ))
+
+    vendedores = list(Empresa.objects.filter(
+        modalidade="VENDEDOR",
+        empresaevento__evento=evento,
+        empresaevento__participa=True
+    ))
+
+    rodadas = Rodada.objects.filter(evento=evento).order_by("inicio_ro")
+
+    mesas = Mesa.objects.filter(
+        rodada__evento=evento
+    ).select_related("rodada", "comprador", "vendedor")
+
+    # Participações reais
+    participacoes = defaultdict(int)
+    for mesa in mesas:
+        participacoes[mesa.vendedor_id] += 1
+
+    # Mínimo esperado
+    qtd_rodadas = rodadas.count()
+    minimo_por_vendedor = max(1, math.ceil(qtd_rodadas / 2))
+
+    # Diagnóstico por vendedor
+    relatorio = []
+
+    for vendedor in vendedores:
+        v_id = vendedor.id
+
+        # compradores compatíveis
+        compradores_compativeis = []
+        compradores_bloqueados_relacao = []
+        compradores_bloqueados_repeticao = []
+
+        for c in compradores:
+
+            # conflito de relação
+            if empresas_tem_relacao(c.id, v_id):
+                compradores_bloqueados_relacao.append(c)
+                continue
+
+            # repetição comprador–vendedor
+            repetiu = mesas.filter(comprador=c, vendedor=vendedor).exists()
+            if repetiu:
+                compradores_bloqueados_repeticao.append(c)
+                continue
+
+            compradores_compativeis.append(c)
+
+        relatorio.append({
+            "vendedor": vendedor,
+            "participacoes": participacoes[v_id],
+            "atingiu_minimo": participacoes[v_id] >= minimo_por_vendedor,
+            "minimo": minimo_por_vendedor,
+            "compatíveis": compradores_compativeis,
+            "bloqueio_relacao": compradores_bloqueados_relacao,
+            "bloqueio_repeticao": compradores_bloqueados_repeticao,
+            "total_compativeis": len(compradores_compativeis),
+        })
+
+    return render(request, "core/rodadas_debug_report.html", {
+        "evento": evento,
+        "rodadas": rodadas,
+        "relatorio": relatorio,
+        "minimo_por_vendedor": minimo_por_vendedor,
+    })
 
 # -----------------------------
 # RODADAS
@@ -1211,15 +1159,19 @@ def rodadas_gerar(request, evento_id):
     # POST → lê o modo escolhido
     modo = request.POST.get("modo")
 
-    # POST → valida participantes e redireciona para confirmação
-    qtd_mesas = int(request.POST["qtd_mesas"])
-    duracao = int(request.POST["duracao"])
-    inicio_rodadas = request.POST["inicio_rodadas"]
-    intervalo = int(request.POST["intervalo"])
-    pausa_cada = int(request.POST["pausa_cada"])
-    pausa_duracao = int(request.POST["pausa_duracao"])
-    qtd_rodadas = int(request.POST["qtd_rodadas"])
-
+    try:
+            
+        # POST → valida participantes e redireciona para confirmação
+        qtd_mesas = int(request.POST["qtd_mesas"])
+        duracao = int(request.POST["duracao"])
+        inicio_rodadas = request.POST["inicio_rodadas"]
+        intervalo = int(request.POST["intervalo"])
+        pausa_cada = int(request.POST["pausa_cada"])
+        pausa_duracao = int(request.POST["pausa_duracao"])
+        qtd_rodadas = int(request.POST["qtd_rodadas"])
+    except:
+        messages.error(request, "Parâmetros inválidos para geração de rodadas.")
+        return redirect("core:rodadas_gerar", evento_id)
 
     # Guarda os dados do formulário na sessão
     request.session["rodadas_params"] = {
@@ -1247,7 +1199,7 @@ def rodadas_gerar(request, evento_id):
         empresaevento__participa=True
     )
 
-    if compradores.count() == 0 or vendedores.count() == 0:
+    if not compradores.exists() or not vendedores.exists():
         messages.error(
             request,
             "Não é possível gerar rodadas: verifique se há compradores e vendedores inscritos no evento."
@@ -1255,10 +1207,12 @@ def rodadas_gerar(request, evento_id):
         return redirect("core:evento_participantes", evento_id)
 
     # Opcional: alerta se houver empresas cadastradas mas não inscritas
-    total_empresas = Empresa.objects.count()
     total_inscritas = compradores.count() + vendedores.count()
+    total_empresas_evento = Empresa.objects.filter(
+        empresaevento__evento=evento
+    ).count()
 
-    if total_inscritas < total_empresas:
+    if total_inscritas < total_empresas_evento:
         messages.warning(
             request,
             "Existem empresas cadastradas que não estão inscritas neste evento. "
@@ -1283,6 +1237,12 @@ def rodadas_confirmar_ranking(request, evento_id):
         messages.error(request, "Parâmetros de geração de rodadas não encontrados.")
         return redirect("core:rodadas_gerar", evento_id)
 
+    qtd_mesas = params["qtd_mesas"]
+    duracao = params["duracao"]
+    inicio_rodadas = params["inicio_rodadas"]
+    intervalo = params["intervalo"]
+    pausa_cada = params["pausa_cada"]
+    pausa_duracao = params["pausa_duracao"]
     qtd_rodadas = params["qtd_rodadas"]
 
     # ============================
@@ -1300,23 +1260,31 @@ def rodadas_confirmar_ranking(request, evento_id):
         empresaevento__participa=True
     )
 
-    if compradores.count() == 0 or vendedores.count() == 0:
+    if not compradores.exists() or not vendedores.exists():
         messages.error(
             request,
             "Não é possível gerar rodadas: verifique se há compradores e vendedores inscritos no evento."
         )
         return redirect("core:evento_participantes", evento_id)
 
-    # ============================
-    # CRIA AS RODADAS (HORÁRIOS)
-    # ============================
-    criar_rodadas(evento, params)
+    # Remove rodadas anteriores
+    Rodada.objects.filter(evento=evento).delete()
 
     # ============================
     # GERA AS MESAS POR RANKING
     # ============================
     try:
-        gerar_rodadas_por_ranking(evento, qtd_rodadas)
+        gerar_todas_as_rodadas(
+            evento=evento,
+            qtd_mesas=qtd_mesas,
+            duracao_minutos=duracao,
+            inicio_rodadas=inicio_rodadas,
+            intervalo_minutos=intervalo,
+            pausa_cada=pausa_cada,
+            pausa_duracao=pausa_duracao,
+            qtd_rodadas=qtd_rodadas,
+        )
+        
     except Exception as e:
         messages.error(request, f"Erro ao gerar rodadas por ranking: {e}")
         return redirect("core:rodadas_gerar", evento_id)
@@ -1372,65 +1340,7 @@ def rodadas_confirmar(request, evento_id):
     }
 
     return render(request, "core/rodadas_confirmar.html", context)
-
-# ========================================================
-def rodadas_processar(request, evento_id):
-    # - Recupera o evento
-    evento = get_object_or_404(Evento, id=evento_id)
-
-    # Segurança: só aceita POST
-    if request.method != "POST":
-        messages.error(request, "Acesso inválido. Confirme a geração das rodadas antes de prosseguir.")
-        return redirect("core:rodadas_confirmar", evento_id)
-    
-    # Recupera parâmetros da sessão
-    params = request.session.get("rodadas_params")
-    if not params:
-        messages.error(request, "Nenhum parâmetro encontrado. Preencha o formulário novamente.")
-        return redirect("core:rodadas_gerar", evento_id)
-
-    # Evita duplicação de rodadas
-    if Rodada.objects.filter(evento=evento).exists():
-        messages.warning(request, "As rodadas deste evento já foram geradas anteriormente.")
-        return redirect("core:rodadas_geradas", evento_id)
-
-    # Verifica participantes novamente (segurança extra)
-    compradores = Empresa.objects.filter(
-        modalidade="COMPRADOR",
-        empresaevento__evento=evento,
-        empresaevento__participa=True
-    )
-
-    vendedores = Empresa.objects.filter(
-        modalidade="VENDEDOR",
-        empresaevento__evento=evento,
-        empresaevento__participa=True
-    )
-
-    if compradores.count() == 0 or vendedores.count() == 0:
-        messages.error(request, "Não é possível gerar rodadas sem compradores e vendedores inscritos.")
-        return redirect("core:evento_participantes", evento_id)
-
-    # - Chama o algoritmo de matchmaking para gerar as rodadas
-    rodadas = gerar_todas_as_rodadas(
-        evento,
-        params["qtd_mesas"],
-        params["duracao"],
-        params["inicio_rodadas"],
-        params["intervalo"],
-        params["pausa_cada"],
-        params["pausa_duracao"]
-    )
-
-    # Limpa sessão
-    del request.session["rodadas_params"]
-
-    # Renderiza o template final com as rodadas geradas
-    return render(request, "core/rodadas_geradas.html", {
-        "evento": evento,
-        "rodadas": rodadas
-    })
-    
+ 
 # ========================================================
 def rodadas_do_evento(request, evento_id):
     evento = get_object_or_404(Evento, id=evento_id)
@@ -1546,7 +1456,21 @@ def agendas_empresas_evento(request, evento_id):
         )
         .order_by("nome")
     )
+    # Adiciona a quantidade de rodadas para cada empresa
+    for empresa in empresas:
+        empresa.total_rodadas = (
+            Mesa.objects.filter(
+                rodada__evento=evento,
+                comprador=empresa
+            ).count()
+            +
+            Mesa.objects.filter(
+                rodada__evento=evento,
+                vendedor=empresa
+            ).count()
+        )
 
+        
     return render(request, "core/agendas_empresas_evento.html", {
         "evento": evento,
         "empresas": empresas,
@@ -1563,7 +1487,7 @@ def agenda_comprador(request, empresa_id, evento_id):
         .select_related("rodada", "vendedor")
         .order_by("rodada__inicio_ro")
     )
-
+ 
     return render(request, "core/agenda_comprador.html", {
         "empresa": empresa,
         "evento": evento,

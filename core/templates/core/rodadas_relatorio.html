@@ -3,11 +3,53 @@
 
 {% block content %}
 
-<h2 class="mb-1">Agenda de Rodadas — {{ evento.nome }}</h2>
+<h4 class="mb-1">Agenda de Rodadas — {{ evento.nome }}</h4>
 <p class="text-muted mb-4">
     <strong>Data:</strong> {{ evento.data }} &nbsp;•&nbsp;
     <strong>Local:</strong> {{ evento.local }}
 </p>
+<style>
+/* ======== ESTILO PARA TELA ======== */
+.table-responsive {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+/* ======== ESTILO PARA IMPRESSÃO ======== */
+@media print {
+
+    /* Remove scroll e deixa a tabela expandir */
+    .table-responsive {
+        overflow: visible !important;
+    }
+
+    /* Força a tabela a ocupar toda a largura */
+    table {
+        width: 100% !important;
+        table-layout: fixed;
+    }
+
+    /* Evita quebras de página no meio da tabela */
+    table, tr, td, th {
+        page-break-inside: avoid !important;
+    }
+
+    /* Remove botões e elementos que não devem aparecer */
+    a.btn, .btn {
+        display: none !important;
+    }
+
+    /* Remove sombras e bordas que atrapalham na impressão */
+    .shadow-sm {
+        box-shadow: none !important;
+    }
+
+    /* Ajusta fonte para caber mais conteúdo */
+    body {
+        font-size: 11px;
+    }
+}
+</style>
 
 <div class="table-responsive">
 <table class="table table-bordered align-middle text-center shadow-sm">

@@ -1,6 +1,7 @@
 {% extends 'core/base.html' %}
 {% load static %}
 {% block content %}
+
 <h4>Detalhes da Empresa — {{ empresa.nome }}</h4>
   
 <p><strong>Segmento:</strong> {{ empresa.segmento }}</p>
@@ -59,7 +60,7 @@
 
 <a href="{% url 'core:empresa_list' %}" class="btn btn-secondary">Voltar</a>
 
-<a href="{% url 'core:representante_novo' empresa.id %}" class="btn btn-success">
+<a href="{% url 'core:representante_novo' empresa.id %}" class="btn btn-outline-success">
     Adicionar Representante
 </a>
 

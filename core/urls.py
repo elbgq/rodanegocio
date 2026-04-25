@@ -50,24 +50,22 @@ urlpatterns = [
     path('eventos/<int:pk>/editar/', views.EventoUpdateView.as_view(), name='evento_update'),
     path('eventos/<int:pk>/excluir/', views.EventoDeleteView.as_view(), name='evento_confirm_delete'),
     path("evento/<int:evento_id>/participantes/", views.evento_participantes, name="evento_participantes"),
-    path("evento/<int:evento_id>/rodadas/confirmar/", views.rodadas_confirmar, name="rodadas_confirmar"),
-    path("evento/<int:evento_id>/rodadas/processar/", views.rodadas_processar, name="rodadas_processar"),
     path("evento/<int:evento_id>/relatorio-inscritos/", views.relatorio_inscritos, name="evento_relatorio_inscritos"),
     path("evento/<int:evento_id>/relatorio-rodadas/", views.rodadas_relatorio, name="rodadas_relatorio"),
     path("evento/<int:evento_id>/ranking-afinidades/", views.ranking_afinidades, name="ranking_afinidades"),
     path("evento/<int:evento_id>/rodadas-confirmar-ranking/", views.rodadas_confirmar_ranking,
     name="rodadas_confirmar_ranking"),
-     
+      
     # RODADAS
     path("evento/<int:evento_id>/rodadas/gerar/", views.rodadas_gerar, name="rodadas_gerar"),
-    path("evento/<int:evento_id>/gerar-rodadas-ranking/", views.rodadas_gerar_ranking, name="rodadas_gerar_ranking"),
     path('evento/<int:evento_id>/rodadas/', views.rodadas_do_evento, name='rodadas_list'),
     path('rodada/<int:rodada_id>/editar/', views.rodadas_editar, name='rodadas_editar'),
     path('rodada/<int:rodada_id>/excluir/', views.rodadas_excluir, name='rodadas_excluir'),
+    path("evento/<int:evento_id>/rodadas/debug/", views.rodadas_debug_report, name="rodadas_debug_report"),
+
 
     # MESAS
     path('rodada/<int:rodada_id>/mesas/', views.mesas_da_rodada, name='mesas_da_rodada'),
-    #path('rodada/<int:rodada_id>/mesas/gerar/', views.mesas_gerar, name='mesas_gerar'),
     path("mesas/<int:pk>/relatorio/", views.mesa_relatorio, name="mesa_relatorio"),
      
     # PAINEL

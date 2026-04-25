@@ -77,7 +77,7 @@
 </div>
 
 <!-- Busca -->
-<input type="text" id="busca" class="form-control mb-3" placeholder="Buscar empresa...">
+<!-- <input type="text" id="busca" class="form-control mb-3" placeholder="Buscar empresa..."> -->
 
 <form method="post">
     {% csrf_token %}
@@ -93,7 +93,7 @@
         {% for empresa in empresas %}
         <li class="list-group-item d-flex justify-content-between align-items-center">
             <label class="d-flex flex-column">
-                <span>
+                <span class="nome-empresa">
                     <input type="checkbox"
                         name="empresas"
                         value="{{ empresa.id }}"
@@ -134,63 +134,28 @@
     </button>
 {% endif %}
 
+<!-- Scrip para a barra de busca -->
+
     <a href="{% url 'core:evento_detail' evento.id %}" class="btn btn-secondary">Voltar</a>
 </div>
+{% endblock content %}
 
-<!-- Scripts -->
+{% block scripts %}
 <script>
-function selecionarTodos() {
-    document.querySelectorAll(".chk-empresa").forEach(c => c.checked = true);
-    atualizarContadores();
-}
+document.addEventListener("DOMContentLoaded", function () {
+    const campoBusca = document.getElementById("busca");
+    const itens = document.querySelectorAll("#lista-empresas li");
 
-function limparTodos() {
-    document.querySelectorAll(".chk-empresa").forEach(c => c.checked = false);
-    atualizarContadores();
-}
+    campoBusca.addEventListener("keyup", function () {
+        const termo = this.value.toLowerCase();
 
-document.getElementById("busca").addEventListener("keyup", function() {
-    let termo = this.value.toLowerCase();
-    document.querySelectorAll("#lista-empresas li").forEach(li => {
-        let nome = li.querySelector("label span").innerText.toLowerCase();
-        li.style.display = nome.includes(termo) ? "" : "none";
-    });
-});
-</script>
-
-<script>
-document.addEventListener("DOMContentLoaded", function() {
-
-    function atualizarContadores() {
-        let total = document.querySelectorAll(".chk-empresa").length;
-        let marcadas = document.querySelectorAll(".chk-empresa:checked");
-        
-        let totalInscritas = marcadas.length;
-        let compradores = 0;
-        let vendedores = 0;
-
-        marcadas.forEach(chk => {
-            if (chk.dataset.modalidade === "COMPRADOR") compradores++;
-            if (chk.dataset.modalidade === "VENDEDOR") vendedores++;
+        itens.forEach(li => {
+            const nome = li.innerText.toLowerCase();
+            li.hidden = !nome.includes(termo);
         });
-
-        document.getElementById("total-inscritas").innerText = totalInscritas;
-        document.getElementById("compradores-inscritos").innerText = compradores;
-        document.getElementById("vendedores-inscritos").innerText = vendedores;
-
-        let percentual = total > 0 ? Math.round((totalInscritas / total) * 100) : 0;
-        let barra = document.getElementById("barra-progresso");
-
-        barra.style.width = percentual + "%";
-        barra.innerText = percentual + "%";
-    }
-
-    document.querySelectorAll(".chk-empresa").forEach(chk => {
-        chk.addEventListener("change", atualizarContadores);
     });
-
-    atualizarContadores();
 });
 </script>
+{% endblock scripts %}
 
-{% endblock %}
+

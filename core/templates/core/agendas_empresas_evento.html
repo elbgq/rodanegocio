@@ -13,6 +13,7 @@
         <tr>
             <th>Empresa</th>
             <th>Modalidade</th>
+            <th>Rodadas</th>
             <th>Agenda</th>
         </tr>
     </thead>
@@ -27,8 +28,12 @@
                         <span class="badge bg-primary ms-2">VENDEDOR</span>
                     {% endif %}
                 </td>
-
                 <td>
+                    <span class="badge bg-outline-dark text-primary">
+                        {{ empresa.total_rodadas }}
+                    </span>
+                </td>
+                <td> 
                     {% if empresa.modalidade == "COMPRADOR" %}
                         <a href="{% url 'core:agenda_comprador' evento.id empresa.id %}"
                            class="btn btn-outline-success btn-sm">
