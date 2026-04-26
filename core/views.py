@@ -1274,7 +1274,7 @@ def rodadas_confirmar_ranking(request, evento_id):
     # GERA AS MESAS POR RANKING
     # ============================
     try:
-        gerar_todas_as_rodadas(
+        rodadas, logs = gerar_todas_as_rodadas(
             evento=evento,
             qtd_mesas=qtd_mesas,
             duracao_minutos=duracao,
@@ -1284,6 +1284,9 @@ def rodadas_confirmar_ranking(request, evento_id):
             pausa_duracao=pausa_duracao,
             qtd_rodadas=qtd_rodadas,
         )
+        
+        # Salva logs na sessão
+        request.session["rodadas_logs"] = logs
         
     except Exception as e:
         messages.error(request, f"Erro ao gerar rodadas por ranking: {e}")
@@ -1375,6 +1378,40 @@ def rodadas_excluir(request, rodada_id):
 
     messages.success(request, "Rodada excluída com sucesso!")
     return redirect('core:rodadas_list', evento_id=evento.id)
+
+
+def rodadas_log(request, evento_id):
+    evento = get_object_or_404(Evento, id=evento_id)
+
+    logs = request.session.get("rodadas_logs")
+
+    # Se não há logs na sessão, precisamos verificar se existem rodadas
+    if not logs:
+        rodadas_existentes = Rodada.objects.filter(evento=evento).exists()
+
+        if rodadas_existentes:
+            # OPÇÃO B → existem rodadas, mas não há logs
+            messages.warning(
+                request,
+                "As rodadas existem, mas não há log disponível. "
+                "Isso pode ocorrer se a sessão expirou."
+            )
+            return redirect("core:rodadas_relatorio", evento_id)
+
+        else:
+            # OPÇÃO C → não há rodadas e não há logs
+            return render(request, "core/rodadas_log.html", {
+                "evento": evento,
+                "logs": {},
+                "mensagem": "Nenhum log disponível. Gere as rodadas para visualizar o log."
+            })
+
+    # Se há logs → exibe normalmente
+    return render(request, "core/rodadas_log.html", {
+        "evento": evento,
+        "logs": logs,
+    })
+
 
 # ----------------------------------------------------
 # Agenda de Rodadas

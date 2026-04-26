@@ -31,65 +31,85 @@ def gerar_pares_para_rodada(
     encontros_previos,
     rodada_atual,
     qtd_rodadas,
+    log_rodada, # Para log
 ):
     matriz = []
 
+    log_rodada.append(f"--- Rodada {rodada_atual} ---")
+    log_rodada.append(f"Vendedores disponíveis: {[v.nome for v in vendedores_disponiveis]}")
+    
     for c in compradores:
         for e in vendedores_disponiveis:
 
+            motivo_exclusao = None
+            
             # Critério 3: empresas relacionadas não podem se encontrar
             if empresas_tem_relacao(c.id, e.id):
-                continue
+                motivo_exclusao = "Bloqueado: empresas relacionadas"
+            elif e.id in encontros_previos[c.id]:
+                motivo_exclusao = "Bloqueado: repetição comprador–vendedor"
 
             # Critério 5: comprador não pode repetir vendedor em rodadas diferentes
-            if e.id in encontros_previos[c.id]:
+            if motivo_exclusao:
+                log_rodada.append(f"[X] {c.nome} → {e.nome}: {motivo_exclusao}")
                 continue
 
             score_base = calcular_afinidade(c, e)
-
             participacoes = participacoes_vendedores[e.id]
 
             # quantas rodadas ainda faltam
             rodadas_restantes = qtd_rodadas - rodada_atual + 1
             faltam_para_minimo = max(0, minimo_por_vendedor - participacoes)
 
+            score = score_base
             # vendedor já atingiu o mínimo
             if participacoes >= minimo_por_vendedor:
                 # joga lá pra baixo, mas não exclui totalmente
-                score = score_base - 10000
-
+                score -= 10000
+                log_rodada.append(
+                    f"[↓] {c.nome} → {e.nome}: vendedor já atingiu mínimo ({participacoes})"
+                )
             else:
                 # vendedor ainda não atingiu o mínimo
-                score = score_base + 1000
-
+                score += 1000
+                log_rodada.append(
+                    f"[↑] {c.nome} → {e.nome}: vendedor abaixo do mínimo ({participacoes})"
+                )
+                
                 # se ele está em risco de não conseguir mais atingir o mínimo,
                 # dá prioridade ABSOLUTA
                 if faltam_para_minimo > rodadas_restantes:
-                    score += 100000  # urgência máxima
+                    score += 100000
+                    log_rodada.append(
+                        f"[!!!] {c.nome} → {e.nome}: vendedor em risco de não atingir mínimo"
+                    )
 
             matriz.append((c, e, score))
 
     # se não há nenhuma combinação possível, não força nada que quebre regras:
     # apenas retorna vazio e a rodada terá menos mesas
-    if not matriz:
-        return [], set()
-
     matriz.sort(key=lambda x: x[2], reverse=True)
 
+    log_rodada.append("Ordenação final por score:")
+    for c, e, s in matriz:
+        log_rodada.append(f"  {c.nome} → {e.nome}: score {s}")
+        
     pares = []
     usados_compradores = set()
     usados_vendedores = set()
 
-    for c, e, score in matriz:
+    for c, e, scores in matriz:
         if len(pares) >= qtd_mesas:
             break
 
         # Critério 2: vendedor só 1x por rodada
         if e.id in usados_vendedores:
+            log_rodada.append(f"[X] {e.nome} já usado na rodada")
             continue
 
         # comprador só 1x por rodada
         if c.id in usados_compradores:
+            log_rodada.append(f"[X] {c.nome} já usado na rodada")
             continue
 
         pares.append((c, e))
@@ -98,6 +118,7 @@ def gerar_pares_para_rodada(
 
         participacoes_vendedores[e.id] += 1
         encontros_previos[c.id].add(e.id)
+        log_rodada.append(f"[OK] Par formado: {c.nome} ↔ {e.nome}")
 
     return pares, usados_vendedores
 
@@ -149,11 +170,15 @@ def gerar_todas_as_rodadas(
         datetime.strptime(inicio_rodadas, "%H:%M").time()
     )
 
+    logs = {}  # rodada → lista de mensagens
     for numero_rodada in range(1, qtd_rodadas + 1):
+        log_rodada = []
+        logs[numero_rodada] = log_rodada
+        
         vendedores_ordenados = sorted(
             vendedores, key=lambda v: participacoes_vendedores[v.id]
         )
-
+        
         pares, _ = gerar_pares_para_rodada(
             compradores=compradores,
             vendedores_disponiveis=vendedores_ordenados,
@@ -163,6 +188,7 @@ def gerar_todas_as_rodadas(
             encontros_previos=encontros_previos,
             rodada_atual=numero_rodada,
             qtd_rodadas=qtd_rodadas,
+            log_rodada=log_rodada, 
         )
 
         inicio = horario_atual.time()
@@ -192,7 +218,7 @@ def gerar_todas_as_rodadas(
         if pausa_cada > 0 and numero_rodada % pausa_cada == 0:
             horario_atual += timedelta(minutes=pausa_duracao)
 
-    return rodadas_criadas
+    return rodadas_criadas, logs
 
 
 # Resumo: "É um algoritmo guloso + organizador de agenda, muito bem estruturado."
