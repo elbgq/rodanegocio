@@ -25,7 +25,7 @@ SECRET_KEY = 'django-insecure-!nq0pj3jwa=eq0lv7dh5_s@%s94sj52*c9gak_%cyzi42mpzyc
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['rodanegocio-eloibgq.pythonanywhere.com', 'localhost', '127.0.0.1']
+ALLOWED_HOSTS = ['eloibgq.pythonanywhere.com', 'localhost', '127.0.0.1']
 
 RODANEGOCIOS_PASSWORD = "rodanegocios123"
 
