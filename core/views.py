@@ -379,10 +379,26 @@ def empresa_perfil(request, pk):
 # EMPRESAS - IMPORTAÇÃO DE CSV
 # -----------------------------
 
-def limpar_cnpj(valor):
+def tratar_cnpj(valor):
     if not valor:
         return None
-    return re.sub(r'\D', '', valor)
+
+    valor = valor.strip()
+
+    # 1. Converter notação científica (ex: 5,62E+13)
+    if "e" in valor.lower():
+        try:
+            numero = int(float(valor.replace(",", ".")))
+            valor = str(numero)
+        except:
+            return None
+
+    # 2. Remover tudo que não for número
+    valor = re.sub(r"\D", "", valor)
+
+    # 3. Se sobrar vazio, retorna None
+    return valor or None
+
 
 def empresa_importar(request):
     if request.method == "POST":
@@ -406,57 +422,68 @@ def empresa_importar(request):
                 "vendedor": "VENDEDOR",
             }
 
+            def tratar_cnpj(valor):
+                if not valor:
+                    return None
+
+                # Remove tudo que não for número
+                valor = re.sub(r"\D", "", valor)
+
+                if not valor:
+                    return None
+
+                # Completa com zeros à esquerda
+                if len(valor) < 14:
+                    valor = valor.zfill(14)
+
+                # Se ainda não tiver 14 dígitos, é inválido
+                if len(valor) != 14:
+                    return None
+
+                return valor
+
             criadas = 0
-            ignoradas = 0 
+            ignoradas = 0
 
             for row in reader:
-                row = {k.strip().lower(): v for k, v in row.items()}
-                nome = (row.get("nome") or "").strip()
-                cnpj = limpar_cnpj(row.get("cnpj"))
-                site = (row.get("site") or "").strip()
-                modalidade_csv = (row.get("modalidade") or "").strip().lower()
+                row = {k.strip().lower(): (v or "").strip() for k, v in row.items()}
+
+                nome = row.get("nome")
+                modalidade_csv = row.get("modalidade", "").lower()
                 modalidade = MAPA_MODALIDADE.get(modalidade_csv)
+
+                #cnpj = tratar_cnpj(row.get("cnpj"))
+                site = row.get("site", "")
+
+                cidade = row.get("cidade", "").title()
+                #estado = row.get("estado", "").title()
+                pais = row.get("pais", "").title() or "Brasil"
 
                 if not nome or not modalidade:
                     ignoradas += 1
                     continue
 
-                rua = (row.get("rua") or "").strip().title()
-                numero = (row.get("numero") or "").strip()
-                complemento = (row.get("complemento") or "").strip().title()
-                bairro = (row.get("bairro") or "").strip().title()
-                cidade = (row.get("cidade") or "").strip().title()
-                estado = (row.get("estado") or "").strip().title()
-                cep = (row.get("cep") or "").strip()
-                pais = (row.get("pais") or "").strip().title() or "Brasil"
-
                 endereco, _ = Endereco.objects.get_or_create(
-                    rua=rua,
-                    numero=numero,
-                    complemento=complemento,
-                    bairro=bairro,
                     cidade=cidade,
-                    estado=estado,
+                    #estado=estado,
                     pais=pais
                 )
 
                 empresa, criada = Empresa.objects.get_or_create(
                     nome=nome,
                     defaults={
-                        "cnpj": cnpj,
-                        "site": site,
+                        #"cnpj": cnpj,
                         "modalidade": modalidade,
+                        "site": site,
                         "endereco": endereco
                     }
                 )
 
                 if not criada:
-                    empresa.cnpj = cnpj
+                    #empresa.cnpj = cnpj
                     empresa.site = site
                     empresa.modalidade = modalidade
-                    # empresa.endereco = endereco
 
-                # 🔥 Validação completa
                 empresa.full_clean()
                 empresa.save()
 
@@ -667,8 +694,7 @@ class RepresentanteDeleteView(DeleteView):
         return reverse_lazy("core:empresa_detail", kwargs={"pk": self.object.empresa.id})
 
 # -----------------------------
-def representante_importar(request, empresa_id):
-    empresa = get_object_or_404(Empresa, id=empresa_id)
+def representante_importar(request):
     if request.method == "POST":
         # Limpa mensagens antigas
         storage = get_messages(request)
@@ -694,7 +720,10 @@ def representante_importar(request, empresa_id):
             h.strip().lower().replace("\ufeff", "")
             for h in reader.fieldnames
         ]
-
+        
+        def limpar_telefone(valor):
+            return re.sub(r"\D", "", valor or "")
+        
         criados = 0
         ignorados = 0
         erros = []
@@ -705,6 +734,8 @@ def representante_importar(request, empresa_id):
             empresa_nome = row.get("empresa")
             nome = row.get("nome")
             cargo = row.get("cargo")
+            email = row.get("email")
+            telefone = limpar_telefone(row.get("telefone"))
 
             # Validação básica
             if not empresa_nome:
@@ -719,18 +750,29 @@ def representante_importar(request, empresa_id):
 
             # Busca empresa
             try:
-                empresa = Empresa.objects.get(nome__iexact=empresa_nome)
+                empresa_obj = Empresa.objects.get(nome__iexact=empresa_nome)
             except Empresa.DoesNotExist:
                 erros.append(f"Linha {idx}: Empresa '{empresa_nome}' não encontrada.")
                 ignorados += 1
                 continue
-
+            
+            # Evita duplicação
+            if Representante.objects.filter(
+                empresa=empresa_obj,
+                nome__iexact=nome
+            ).exists():
+                erros.append(f"Linha {idx}: Representante '{nome}' já existe para esta empresa.")
+                ignorados += 1
+                continue
+            
             # Criação do representante
             try:
                 Representante.objects.create(
-                    empresa=empresa,
+                    empresa=empresa_obj,
                     nome=nome,
                     cargo=cargo or "",
+                    email=email or "",
+                    telefone=telefone or "",
                 )
                 criados += 1
 
@@ -751,9 +793,7 @@ def representante_importar(request, empresa_id):
 
         return redirect("core:representante_importar")
 
-    return render(request, "core/representante_importar.html", {
-        "empresa": empresa
-    })
+    return render(request, "core/representante_importar.html")
 
 # -----------------------------
 # EVENTO
