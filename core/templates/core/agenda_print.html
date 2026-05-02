@@ -1,0 +1,103 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="utf-8">
+    <title>Impressão — Agenda {{ empresa.nome }}</title>
+
+    <link rel="stylesheet" href="{% static 'css/bootstrap.min.css' %}">
+
+    <style>
+        @page {
+            margin: 2.8cm; /* entre 2.5 e 3 cm */
+        }
+
+        body {
+            padding: 0;
+        }     
+
+        /* Mantém linhas da tabela no PDF */
+        table, th, td {
+            border: 2px solid #181717 !important;
+            border-collapse: collapse !important;
+        }
+
+        th, td {
+            padding: 6px !important;
+        }
+
+        /* Distribui colunas igualmente */
+        table {
+            width: 80% !important;
+            table-layout: fixed !important;
+        }
+        /* Largura da coluna 4 (nome da empresa) */
+        table th:nth-child(4),
+        table td:nth-child(4) {
+            width: 35% !important;   /* ajuste conforme desejar */
+        }
+        table {
+            margin-bottom: 10px !important; /* ajuste conforme desejar */
+        }
+
+        /* Centraliza colunas 2 e 3 */
+        .text-center {
+            text-align: center !important;
+        }
+
+        /* Remove qualquer botão ou elemento marcado como no-print */
+        @media print {
+            .no-print {
+                display: none !important;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<h2 class="mb-2">Agenda de Reuniões — {{ empresa.nome }}</h2>
+<h4 class="mb-3">Evento: {{ evento.nome }}</h4>
+
+<p><strong>Data:</strong> {{ evento.data }}</p>
+<p><strong>Local:</strong> {{ evento.local }}</p>
+<p><strong>Descrição:</strong> {{ evento.descricao }}</p>
+
+<table class="mt-4 mb-5">
+    <thead>
+        <tr style="background: #333; color: #fff;">
+            <th>Rodada</th>
+            <th class="text-center">Horário</th>
+            <th class="text-center">Mesa</th>
+
+            {% if empresa.modalidade == "COMPRADOR" %}
+                <th>Vendedor</th>
+            {% else %}
+                <th>Comprador</th>
+            {% endif %}
+        </tr>
+    </thead>
+
+    <tbody>
+        {% for encontro in encontros %}
+            <tr>
+                <td>{{ encontro.rodada.nome }}</td>
+                <td class="text-center">{{ encontro.rodada.inicio_ro|time:"H:i" }}</td>
+                <td class="text-center">{{ encontro.numero }}</td>
+
+                {% if empresa.modalidade == "COMPRADOR" %}
+                    <td>{{ encontro.vendedor.nome }}</td>
+                {% else %}
+                    <td>{{ encontro.comprador.nome }}</td>
+                {% endif %}
+            </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<button onclick="window.print()" class="btn btn-primary no-print mt-4">
+    Imprimir
+</button>
+
+</body>
+</html>

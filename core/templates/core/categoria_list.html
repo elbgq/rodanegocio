@@ -4,7 +4,7 @@
 {% block content %}
 <h2 class="mb-4">Categorias de Interesse</h2>
 
-<a href="{% url 'core:categoria_create' %}" class="btn btn-primary mb-3">
+<a href="{% url 'core:categoria_create' %}" class="btn btn-outline-secondary mb-3">
     Nova Categoria
 </a>
 
@@ -26,10 +26,10 @@
             <td>{{ categoria.ordem }}</td>
             <td>
                 <a href="{% url 'core:categoria_update' categoria.id %}"
-                   class="btn btn-sm btn-warning">
+                   class="btn btn-sm btn-outline-warning">
                     Editar
                 </a>
-                <a href="{% url 'core:categoria_delete' categoria.id %}" class="btn btn-sm btn-danger">
+                <a href="{% url 'core:categoria_delete' categoria.id %}" class="btn btn-sm btn-outline-danger">
                     Excluir
                 </a>
             </td>

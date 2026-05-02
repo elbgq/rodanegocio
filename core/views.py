@@ -1572,7 +1572,7 @@ def agenda_comprador(request, empresa_id, evento_id):
         .order_by("rodada__inicio_ro")
     )
  
-    return render(request, "core/agenda_comprador.html", {
+    return render(request, "core/agenda_empresas.html", {
         "empresa": empresa,
         "evento": evento,
         "encontros": encontros,
@@ -1590,11 +1590,45 @@ def agenda_vendedor(request, empresa_id, evento_id):
         .order_by("rodada__inicio_ro")
     )
 
-    return render(request, "core/agenda_vendedor.html", {
+    return render(request, "core/agenda_empresas.html", {
         "empresa": empresa,
         "evento": evento,
         "encontros": encontros,
     })
+    
+# View para impressão de agendas
+def agenda_print(request, evento_id, empresa_id):
+    evento = get_object_or_404(Evento, id=evento_id)
+    empresa = get_object_or_404(Empresa, id=empresa_id)
+
+    # Se for comprador
+    if empresa.modalidade == "COMPRADOR":
+        encontros = (
+            Mesa.objects
+            .filter(rodada__evento=evento, comprador=empresa)
+            .select_related("rodada", "vendedor")
+            .order_by("rodada__inicio_ro")
+        )
+        papel = "COMPRADOR"
+
+    # Se for vendedor
+    else:
+        encontros = (
+            Mesa.objects
+            .filter(rodada__evento=evento, vendedor=empresa)
+            .select_related("rodada", "comprador")
+            .order_by("rodada__inicio_ro")
+        )
+        papel = "VENDEDOR"
+
+    return render(request, "core/agenda_print.html", {
+        "empresa": empresa,
+        "evento": evento,
+        "encontros": encontros,
+        "papel": papel,
+    })
+
+
 
 # -----------------------------
 # MESAS

@@ -5,8 +5,8 @@
 <h2 class="mb-4">Interesses Cadastrados</h2>
 
 <div class="d-flex mb-3">
-    <a href="{% url 'core:interesse_create' %}" class="btn btn-primary me-2">Novo Interesse</a>
-    <a href="{% url 'core:categoria_list' %}" class="btn btn-secondary">Categorias</a>
+    <a href="{% url 'core:interesse_create' %}" class="btn btn-outline-warning me-2">Novo Interesse</a>
+    <a href="{% url 'core:categoria_list' %}" class="btn btn-outline-secondary">Categorias</a>
 </div>
 
 <!-- Filtro por categoria -->
@@ -55,8 +55,8 @@
                             <tr class="linha-interesse">
                                 <td>{{ interesse.nome }}</td>
                                 <td style="width: 150px;">
-                                    <a href="{% url 'core:interesse_update' interesse.id %}" class="btn btn-sm btn-warning">Editar</a>
-                                    <a href="{% url 'core:interesse_delete' interesse.id %}" class="btn btn-sm btn-danger">Excluir</a>
+                                    <a href="{% url 'core:interesse_update' interesse.id %}" class="btn btn-sm btn-outline-warning">Editar</a>
+                                    <a href="{% url 'core:interesse_delete' interesse.id %}" class="btn btn-sm btn-outline-danger">Excluir</a>
                                 </td>
                             </tr>
                             {% endfor %}

@@ -1,0 +1,58 @@
+{% extends "core/base.html" %}
+{% load static %}
+{% block content %}
+
+<h2>Agenda de Reuniões — {{ empresa.nome }}</h2>
+<h4>Evento: {{ evento.nome }}</h4>
+
+<p><strong>Data:</strong> {{ evento.data }}</p>
+<p><strong>Local:</strong> {{ evento.local }}</p>
+<p><strong>Descrição:</strong> {{ evento.descricao }}</p>
+
+<table class="table table-bordered mt-4">
+    <thead class="table-dark">
+        <tr>
+            <th>Rodada</th>
+            <th class="text-center">Horário</th>
+            <th class="text-center">Mesa</th>
+
+            {% if empresa.modalidade == "COMPRADOR" %}
+                <th>Vendedor</th>
+            {% else %}
+                <th>Comprador</th>
+            {% endif %}
+        </tr>
+    </thead>
+
+    <tbody>
+        {% for encontro in encontros %}
+            <tr>
+                <td>{{ encontro.rodada.nome }}</td>
+                <td class="text-center">{{ encontro.rodada.inicio_ro|time:"H:i" }}</td>
+                <td class="text-center">{{ encontro.numero }}</td>
+
+                {% if empresa.modalidade == "COMPRADOR" %}
+                    <td>{{ encontro.vendedor.nome }}</td>
+                {% else %}
+                    <td>{{ encontro.comprador.nome }}</td>
+                {% endif %}
+            </tr>
+        {% empty %}
+            <tr>
+                <td colspan="4" class="text-muted">Nenhuma reunião agendada.</td>
+            </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<a href="{% url 'core:agendas_empresas_evento' evento.id %}" class="btn btn-secondary mt-3">
+    Voltar
+</a>
+
+<a href="{% url 'core:agenda_print' evento.id empresa.id %}"
+   target="_blank"
+   class="btn btn-outline-dark mt-3">
+   Imprimir / PDF
+</a>
+
+{% endblock %}

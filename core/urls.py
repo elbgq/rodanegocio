@@ -85,4 +85,7 @@ urlpatterns = [
         views.agenda_vendedor, name="agenda_vendedor"),
     path("evento/<int:evento_id>/agendas/", views.agendas_empresas_evento,
         name="agendas_empresas_evento"),
+    path("evento/<int:evento_id>/empresa/<int:empresa_id>/imprimir/",
+        views.agenda_print, name="agenda_print"),
+
 ]
