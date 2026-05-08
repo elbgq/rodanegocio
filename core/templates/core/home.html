@@ -32,7 +32,7 @@
                         <p class="card-text">
                             <strong class="text-secondary">Data:</strong> {{ e.data|date:"d/m/Y" }} - <strong class="text-secondary">Local:</strong> {{ e.local }}
                         </p>
-                        <a href="{% url 'core:rodadas_relatorio' e.id %}" class="btn btn-outline-primary">
+                        <a href="{% url 'core:agenda_rodadas' e.id %}" class="btn btn-outline-primary">
                             Abrir Agenda
                         </a>
                     </div>

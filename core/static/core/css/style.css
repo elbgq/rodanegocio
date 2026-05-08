@@ -120,3 +120,7 @@ span.badge.bg-vazia {
 .accordion-arrow[aria-expanded="true"]::after {
     transform: translateY(-50%) rotate(180deg);
 }
+.linha-vermelha {
+    background-color: #dc3545 !important;
+    color: white !important;
+}

@@ -3,8 +3,10 @@
 
 {% block content %}
 
-<h2 class="mb-3">Painel da Rodada: {{ rodada.nome }}</h2>
 <h4 class="text-muted">Evento: {{ rodada.evento.nome }}</h4>
+
+<h4 class="text-primary mb-3">Painel da {{ rodada.nome }}</h4>
+
 
 <div class="mb-4">
     <span class="badge bg-primary fs-6">
@@ -14,7 +16,7 @@
         {{ rodada.inicio_ro|time:"H:i" }} - {{ rodada.fim_ro|time:"H:i" }}
     </span>
     <span class="badge bg-info fs-6">
-        {{ rodada.duracao }} min por reunião
+        {{ rodada.duracao }} min
     </span>
 </div>
 

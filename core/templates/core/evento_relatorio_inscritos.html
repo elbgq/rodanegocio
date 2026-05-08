@@ -5,9 +5,6 @@
 <h4 >Detalhes — {{ evento.nome }}</h4>
 <h4 class="mt-2 text-primary">Relatório de Empresas Inscritas</h4>
 
-<p><strong>Data:</strong> {{ evento.data }}</p>
-<p><strong>Local:</strong> {{ evento.local }}</p>
-
 <a href="{% url 'core:evento_detail' evento.id %}" class="btn btn-secondary mb-1">Voltar</a>
 
 {% if total == 0 %}

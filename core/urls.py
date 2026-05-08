@@ -52,7 +52,7 @@ urlpatterns = [
     path('eventos/<int:pk>/excluir/', views.EventoDeleteView.as_view(), name='evento_confirm_delete'),
     path("evento/<int:evento_id>/participantes/", views.evento_participantes, name="evento_participantes"),
     path("evento/<int:evento_id>/relatorio-inscritos/", views.relatorio_inscritos, name="evento_relatorio_inscritos"),
-    path("evento/<int:evento_id>/relatorio-rodadas/", views.rodadas_relatorio, name="rodadas_relatorio"),
+    path("evento/<int:evento_id>/agenda-rodadas/", views.agenda_rodadas, name="agenda_rodadas"),
     path("evento/<int:evento_id>/ranking-afinidades/", views.ranking_afinidades, name="ranking_afinidades"),
     path("evento/<int:evento_id>/rodadas-confirmar-ranking/", views.rodadas_confirmar_ranking,
     name="rodadas_confirmar_ranking"),
@@ -73,7 +73,11 @@ urlpatterns = [
 
     # MESAS
     path('rodada/<int:rodada_id>/mesas/', views.mesas_da_rodada, name='mesas_da_rodada'),
+    # Detalhes da mesa e relatório de afinidades a partir do painel da rodada
     path("mesas/<int:pk>/relatorio/", views.mesa_relatorio, name="mesa_relatorio"),
+    # Detalhes da mesa e relatório de afinidades a partir do ranking de afinidades
+    path("afinidades/<int:comprador_id>/<int:vendedor_id>/", views.relatorio_afinidades,
+    name="relatorio_afinidades"),
      
     # PAINEL
     path('rodada/<int:rodada_id>/painel/', views.painel_da_rodada, name='painel_rodada'),

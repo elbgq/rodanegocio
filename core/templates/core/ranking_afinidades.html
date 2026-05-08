@@ -56,6 +56,11 @@
                             </div>
 
                             <div>
+                                 <!-- BOTÃO PARA RELATÓRIO DE AFINIDADES -->
+                                <a href="{% url 'core:relatorio_afinidades' item.comprador.id m.vendedor.id %}"
+                                    class="btn btn-sm btn-outline-primary me-2">
+                                    Ver Afinidades
+                                </a>
                                 <span class="badge bg-success">{{ m.score }}</span>
                                 <span class="badge bg-info text-dark">{{ m.percentual }}%</span>
                             </div>

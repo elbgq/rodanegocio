@@ -1355,13 +1355,13 @@ def rodadas_gerar(request, evento_id):
             eventos_anteriores=eventos_para_evitar,
         )
         messages.success(request, f"{len(rodadas)} rodadas geradas com sucesso.")
-        return redirect("core:rodadas_relatorio", evento_id)
+        return redirect("core:agenda_rodadas", evento_id)
     
      # ============================
     # SE TUDO OK → GERA RODADAS
     # ============================
 
-    return redirect("core:rodadas_relatorio", evento_id)
+    return redirect("core:agenda_rodadas", evento_id)
 
 
 # ========================================================
@@ -1433,7 +1433,7 @@ def rodadas_confirmar_ranking(request, evento_id):
         return redirect("core:rodadas_gerar", evento_id)
    
     messages.success(request, "Rodadas geradas com sucesso!")
-    return redirect("core:rodadas_relatorio", evento_id)
+    return redirect("core:agenda_rodadas", evento_id)
 
 
 # ========================================================
@@ -1543,7 +1543,7 @@ def rodadas_log(request, evento_id):
                 "As rodadas existem, mas não há log disponível. "
                 "Isso pode ocorrer se a sessão expirou."
             )
-            return redirect("core:rodadas_relatorio", evento_id)
+            return redirect("core:agenda_rodadas", evento_id)
 
         else:
             # OPÇÃO C → não há rodadas e não há logs
@@ -1563,7 +1563,7 @@ def rodadas_log(request, evento_id):
 # ----------------------------------------------------
 # Agenda de Rodadas
 # ----------------------------------------------------
-def rodadas_relatorio(request, evento_id):
+def agenda_rodadas(request, evento_id):
     evento = get_object_or_404(Evento, id=evento_id)
 
     # COLUNAS: rodadas ordenadas pelo horário
@@ -1627,7 +1627,7 @@ def rodadas_relatorio(request, evento_id):
         "linhas": linhas,
     }
 
-    return render(request, "core/rodadas_relatorio.html", context)
+    return render(request, "core/agenda_rodadas.html", context)
 
 # Agenda das empresa no evento
 def agendas_empresas_evento(request, evento_id):
@@ -1921,7 +1921,7 @@ def painel_da_rodada(request, rodada_id):
 # -----------------------------
 # RELATÓRIO DE AFINIDADES
 # -----------------------------
-
+# A partir da mesa no painel de rodadas.
 def mesa_relatorio(request, pk):
     mesa = get_object_or_404(Mesa, pk=pk)
 
@@ -1944,6 +1944,38 @@ def mesa_relatorio(request, pk):
     
     context = {
         "mesa": mesa,
+        "evento": mesa.rodada.evento,
+        "comprador": comprador,
+        "vendedor": vendedor,
+        "afinidades": afinidades,
+        "complementares": complementares,
+        "interesses_comprador": interesses_comprador,
+        "interesses_vendedor": interesses_vendedor,
+        "compatibilidade": compatibilidade,
+    }
+
+    return render(request, "core/mesa_relatorio.html", context)
+
+# A partir do Ranking de afinidades
+def relatorio_afinidades(request, comprador_id, vendedor_id):
+    comprador = get_object_or_404(Empresa, id=comprador_id)
+    vendedor = get_object_or_404(Empresa, id=vendedor_id)
+
+    # Recupera o evento ao qual o comprador está vinculado
+    evento = comprador.empresaevento_set.first().evento
+
+    interesses_comprador = set(comprador.interesses.all())
+    interesses_vendedor = set(vendedor.interesses.all())
+
+    afinidades = interesses_comprador.intersection(interesses_vendedor)
+    complementares = interesses_comprador.symmetric_difference(interesses_vendedor)
+
+    total_unico = interesses_comprador.union(interesses_vendedor)
+    compatibilidade = round((len(afinidades) / len(total_unico)) * 100) if total_unico else 0
+
+    context = {
+        "mesa": None,  # importante para o template saber que NÃO veio de mesa
+        "evento": evento,
         "comprador": comprador,
         "vendedor": vendedor,
         "afinidades": afinidades,
