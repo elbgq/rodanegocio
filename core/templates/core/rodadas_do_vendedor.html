@@ -1,0 +1,35 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block content %}
+
+
+<h4 class="text-primary">Rodadas de {{ vendedor.nome }}</h4>
+<h6 >Evento — {{ evento.nome }} — {{ evento.data }}</h6>
+
+{% if participacoes %}
+<table class="table table-bordered">
+    <thead>
+        <tr> 
+            <th>Rodada</th>
+            <th>Horário</th>
+            <th>Mesa</th>
+            <th>Comprador</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for p in participacoes %}
+            <tr>
+                <td>{{ p.rodada.nome }}</td>
+                <td>{{ p.rodada.inicio_ro }} – {{ p.rodada.fim_ro }}</td>
+                <td>{{ p.mesa }}</td>
+                <td>{{ p.comprador.nome }}</td>
+            </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% else %}
+    <p>Nenhuma participação encontrada.</p>
+{% endif %}
+<a href="{% url 'core:agenda_rodadas' evento.id %}" class="btn btn-secondary mb-1">Voltar</a>
+{% endblock %}

@@ -37,6 +37,7 @@ from django.db.models import Q
 from collections import defaultdict
 from django.utils.safestring import mark_safe
 from django.db.models import Prefetch
+from types import SimpleNamespace
 
 # -----------------------------
 # Home
@@ -1014,7 +1015,7 @@ def ranking_afinidades(request, evento_id):
         modalidade="VENDEDOR",
         empresaevento__evento=evento,
         empresaevento__participa=True
-    )
+    ) 
 
     # Cores por vendedor (mesma função usada no relatório)
     cores_vendedores = {v.id: cor_para_vendedor(v.id) for v in vendedores}
@@ -1366,8 +1367,6 @@ def rodadas_gerar(request, evento_id):
 
 
 # ========================================================
-
-
 def rodadas_confirmar_ranking(request, evento_id):
     evento = get_object_or_404(Evento, id=evento_id)
     
@@ -1442,56 +1441,7 @@ def rodadas_processando(request, evento_id):
     url_gerar = reverse("core:rodadas_gerar", args=[evento_id])
     return render(request, "core/rodadas_processando.html", {"url_gerar": url_gerar})
 
-# ========================================================
-'''
-def rodadas_confirmar(request, evento_id):
-    evento = get_object_or_404(Evento, id=evento_id)
-    
-    # Recupera parâmetros da sessão
-    # Recupera parâmetros salvos na sessão
-    params = request.session.get("rodadas_params")
-    if not params:
-        messages.error(request, "Nenhum parâmetro encontrado. Preencha o formulário novamente.")
-        return redirect("core:rodadas_gerar", evento_id)
 
-    compradores = Empresa.objects.filter(
-        modalidade="COMPRADOR",
-        empresaevento__evento=evento,
-        empresaevento__participa=True
-    )
-
-    vendedores = Empresa.objects.filter(
-        modalidade="VENDEDOR",
-        empresaevento__evento=evento,
-        empresaevento__participa=True
-    )
-
-    # Bloqueio de segurança
-    if compradores.count() == 0 or vendedores.count() == 0:
-        messages.error(
-            request,
-            "Para gerar rodadas, é necessário ter pelo menos 1 comprador e 1 vendedor inscritos."
-        )
-        return redirect("core:evento_participantes", evento_id)
-
-    # Empresas não inscritas
-    inscritas_ids = list(compradores.values_list("id", flat=True)) + \
-                    list(vendedores.values_list("id", flat=True))
-
-    nao_inscritas = Empresa.objects.exclude(id__in=inscritas_ids)
-
-    context = {
-        "evento": evento,
-        "compradores": compradores,
-        "vendedores": vendedores,
-        "qtd_compradores": compradores.count(),
-        "qtd_vendedores": vendedores.count(),
-        "nao_inscritas": nao_inscritas,
-        "params": params,
-    }
-
-    return render(request, "core/rodadas_confirmar.html", context)
-'''
 # ========================================================
 def rodadas_do_evento(request, evento_id):
     evento = get_object_or_404(Evento, id=evento_id)
@@ -1610,17 +1560,18 @@ def agenda_rodadas(request, evento_id):
             vend = tabela[comprador.id].get(r.id)
             if vend:
                 cor = cores_vendedores.get(vend.id, {"solid": "#000000", "alpha": "#ffffff"})
-                celulas.append({
-                    "vendedor": vend,
-                    "cor_solid": cor["solid"],
-                    "cor_alpha": cor["alpha"],
-                })
+                celulas.append(SimpleNamespace(
+                    vendedor=vend,
+                    cor_solid=cor["solid"],
+                    cor_alpha=cor["alpha"]
+                ))
             else:
                 celulas.append(None)
-        linhas.append({
-            "comprador": comprador,
-            "celulas": celulas,
-        })
+                
+        linhas.append(SimpleNamespace(
+            comprador=comprador,
+            celulas=celulas
+        ))
             
     context = {
         "evento": evento,
@@ -1850,6 +1801,38 @@ def relatorio_rodadas_comprador(request):
     }
 
     return render(request, "core/relatorio_rodadas_comprador.html", context)
+
+# Relatório de rodadas por vendedor para o link da agenda de rodadas
+def rodadas_do_vendedor(request, evento_id, vendedor_id):
+    evento = get_object_or_404(Evento, id=evento_id)
+    vendedor = get_object_or_404(Empresa, id=vendedor_id)
+
+    # Todas as mesas em que ele participa
+    mesas = (
+        Mesa.objects.filter(
+            Q(vendedor_id=vendedor_id) | Q(comprador_id=vendedor_id),
+            rodada__evento__id=evento.id
+        )
+        .select_related("rodada", "comprador", "vendedor")
+        .order_by("rodada__inicio_ro", "numero")
+    )
+
+    participacoes = []
+    for mesa in mesas:
+        participacoes.append({
+            "rodada": mesa.rodada,
+            "mesa": mesa.numero,
+            "comprador": mesa.comprador if mesa.vendedor_id == vendedor_id else mesa.vendedor,
+        })
+
+    context = {
+        "evento": evento,
+        "vendedor": vendedor,
+        "participacoes": participacoes,
+        
+    }
+
+    return render(request, "core/rodadas_do_vendedor.html", context)
 
 # -----------------------------
 # MESAS

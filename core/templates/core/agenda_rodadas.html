@@ -130,12 +130,15 @@
                         >
                             {% if cel %}
                                 <div class="fw-bold" style="color: {{ cel.cor_solid }};">
-                                    {{ cel.vendedor.nome }}
+                                    <a href="{% url 'core:rodadas_do_vendedor' evento.id cel.vendedor.id %}"
+                                        style="color: {{ cel.cor_solid }}; text-decoration: none;">
+                                        {{ cel.vendedor.nome }}
+                                    </a>
                                 </div>
                             {% else %}
                                 <span class="text-muted">—</span>
                             {% endif %}
-                        </td>
+                        </td> 
                     {% endfor %}
                 </tr>
             {% endfor %}
